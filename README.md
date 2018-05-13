@@ -1,2 +1,3 @@
-# MessengerViewer
-A Python &amp; D3JS dataviz of (long) Messenger conversations
+## MessengerViewer Example
+
+Navigate to /docs/Kisscool.html to view an example of MessengerViewer.
