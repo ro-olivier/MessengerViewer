@@ -91,7 +91,9 @@ if __name__ == "__main__":
 	cleaned_conversation_name_json = base_directory + r'\cleaned_conv_name.json'
 	cleaned_conversation_emoji_json = base_directory + r'\cleaned_conv_emoji.json'
 	cleaned_conversation_colour_json = base_directory + r'\cleaned_conv_colour.json'
-
+	cleaned_messages_hidden_json = base_directory + r'\hidden_messages.json'
+	data_per_user_per_week = r'C:\Users\Robin\Documents\Prog\Messenger Viewer\data_per_user_per_week.json'
+	
 	# Opening the file and loading the JSON
 	with open(filepath_json, 'r', encoding='utf-8') as f:
 		data_encoded = json.load(f)
@@ -182,7 +184,7 @@ if __name__ == "__main__":
 	# Some of them will be ignored interely, other are interesting to keep.
 
 	for people in pd.sender_name.unique():
-		print('Cleaning messages of {0}'.format(people))
+		print('Processing messages of {0}'.format(people))
 		# If this person has nicknames, we clean up messages for each nickname
 		if people in nicknames.keys():
 			for nickname in nicknames[people]:
@@ -216,7 +218,7 @@ if __name__ == "__main__":
 	for people in df.sender_name.unique():
 		
 		if people == first_person:
-			print('Processing first person...')
+			print('Processing first person data...')
 			
 			criterion_first_person = df['sender_name'].map(lambda x: str(x) == str(people))
 			for index in df[criterion_first_person].index:
@@ -225,26 +227,26 @@ if __name__ == "__main__":
 				
 				#rename group
 				if special_content_first_person['rename_group'] in data:
-					print('RENAME GROUP = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
+					#print('RENAME GROUP = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
 					line = df.iloc[index]['content']
 					groupname = line[line.find(special_content_first_person['rename_group']) + len(special_content_first_person['rename_group']):-1].strip()
 					apply_rename_group(df, index, groupname)
 
 				#added participant
 				if special_content_first_person['add_participant'] in data:
-					print('ADD PERSON = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
+					#print('ADD PERSON = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
 					line = df.iloc[index]['content']
 					newcomer = line[line.find(special_content_first_person['add_participant']) + len(special_content_first_person['add_participant']):-1].strip()
 					apply_add_participant(df, index, newcomer)
 
 				#changed colour
 				if special_content_first_person['changed_colour'] in data:
-					print('CHANGED COLOUR = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
+					#print('CHANGED COLOUR = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
 					apply_changed_colour(df, index)
 
 				#changed emoji
 				if special_content_first_person['changed_emoji'] in data:
-					print('CHANGED EMOJI = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
+					#print('CHANGED EMOJI = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
 					line = df.iloc[index]['content']
 					emoji = line[line.find(special_content_first_person['changed_emoji']) + len(special_content_first_person['changed_emoji']):-1].strip()
 					apply_changed_emoji(df, index, emoji)
@@ -252,8 +254,7 @@ if __name__ == "__main__":
 			
 		else:
 			
-			print(people)
-			print('Processing participant name...')
+			print('Processing {0} data...'.format(people))
 			criterion = df['content'].map(lambda x: str(x).startswith(people.split(' ')[0] + ' '))
 			criterion2 = df['sender_name'].map(lambda x: str(x) == str(people))
 			for index in df[criterion & criterion2].index:
@@ -263,33 +264,33 @@ if __name__ == "__main__":
 
 				# add participant
 				if people.split(' ')[0] + ' ' + special_content['add_participant'] in data:
-					print('ADD PERSON = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
+					#print('ADD PERSON = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
 					line = df.iloc[index]['content']
 					newcomer = line[line.find(special_content['add_participant']) + len(special_content['add_participant']):-1].strip()
 					apply_add_participant(df, index, newcomer)
 					
 				# rename group
 				if people.split(' ')[0] + ' ' + special_content['rename_group'] in data:
-					print('RENAME GROUP = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
+					#print('RENAME GROUP = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
 					line = df.iloc[index]['content']
 					groupname = line[line.find(special_content['rename_group']) + len(special_content['rename_group']):-1].strip()
 					apply_rename_group(df, index, groupname)
 					
 				# changed colour
 				if people.split(' ')[0] + ' ' + special_content['changed_colour'] in data:
-					print('CHANGED COLOUR = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
+					#print('CHANGED COLOUR = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
 					apply_changed_colour(df, index)
 					
 				# changed emoji
 				if people.split(' ')[0] + ' ' + special_content['changed_emoji'] in data:
-					print('CHANGED EMOJI = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
+					#print('CHANGED EMOJI = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
 					line = df.iloc[index]['content']
 					emoji = line[line.find(special_content['changed_emoji']) + len(special_content['changed_emoji']):-1].strip()
 					apply_changed_emoji(df, index, emoji)
 					
 				# participant left
 				if people + ' ' + special_content['participant_left'] in data:
-					print('PERSON LEFT = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
+					#print('PERSON LEFT = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
 					apply_participant_left(df, index, people)
 					
 					
@@ -304,36 +305,36 @@ if __name__ == "__main__":
 
 						# rename group
 						if nickname + ' ' + special_content['rename_group'] in data:
-							print('RENAME GROUP = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
+							#print('RENAME GROUP = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
 							line = df.iloc[index]['content']
 							groupname = line[line.find(special_content['rename_group']) + len(special_content['rename_group']):-1].strip()
 							apply_rename_group(df, index, groupname)
 							
 						# add participant
 						if nickname + ' ' + special_content['add_participant'] in data:
-							print('ADD PERSON = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
+							#print('ADD PERSON = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
 							line = df.iloc[index]['content']
 							newcomer = line[line.find(special_content['add_participant']) + len(special_content['add_participant']):-1].strip()
 							apply_add_participant(df, index, newcomer)
 							
 						# changed colour
 						if nickname + ' ' + special_content['changed_colour'] in data:
-							print('CHANGED COLOUR = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
+							#print('CHANGED COLOUR = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
 							apply_changed_colour(df, index) 
 						
 						# changed emoji
 						if nickname + ' ' + special_content['changed_emoji'] in data:
-							print('CHANGED EMOJI = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
+							#print('CHANGED EMOJI = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
 							line = df.iloc[index]['content']
 							emoji = line[line.find(special_content['changed_emoji']) + len(special_content['changed_emoji']):-1].strip()
 							apply_changed_emoji(df, index, emoji)
 							
 						# participant left
 						if nickname + ' ' + special_content['participant_left'] in data:
-							print('PERSON LEFT = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
+							#print('PERSON LEFT = Index: {0} ## Timestamp {2} ## Content: {1}'.format(index, df.iloc[index]['content'], df.iloc[index]['timestamp']))
 							apply_participant_left(df, index, people)
 			
-		print('\n')
+		#print('\n')
 		
 		
 	# Let's drop some columns which contains data we are not really interested in
@@ -353,14 +354,80 @@ if __name__ == "__main__":
 	lengths = df['content'].str.len()
 	df.ix[df['details'].isnull(), 'details'] = df.ix[df['details'].isnull(), 'details'].fillna(lengths)
 	
+	
+	# Generating the message count DataFrames
+	
+	# First, we'll let the user choose some participant he wishes to ignore (pretty relevant in our case)
+	print('\nYou can choose the ignore one or several users from this point onward, to reduce processing time.')
+	i = 0
+	for people in pd.sender_name.unique():
+				#print('{0} - {1}'.format(i, people.encode('utf-8')))
+				print('{0} - {1}'.format(i, people))
+				i = i + 1
+	ignore_participant_str = input('Please input the number corresponding to the users you wish to ignore, separated by commas (",").\n')
+	ignored_people = set([pd.sender_name.unique()[i] for i in [int(a) for a in ignore_participant_str.split(',')]])
+	print('Ignoring {0}.'.format(ignored_people))
+	
+	real_participants = [person for person in df.sender_name.unique() if person not in ignored_people]
+
+	# The processing. It may take a bit of time, since we are using a lot of filters. There may be a (much) better way to do that...
+	print('\nStarting processing of the messages count statistics. This may take a bit of time (2 minutes).')
+	min_timestamp = min(df['timestamp'])
+	max_timestamp = max(df['timestamp'])
+	one_day = 86400
+	one_week = 7*one_day
+
+	current_timestamp = min_timestamp
+
+	result = []
+
+	while current_timestamp < max_timestamp:
+	    previous_timestamp = current_timestamp
+	    current_timestamp = current_timestamp + one_week
+	    data_per_week = []
+	    
+	    for person in real_participants:
+	        person_data = {}
+	        
+	        person_data['name'] = person
+
+	        person_data['char_count'] = int(sum(df[(df['timestamp'] < current_timestamp) &
+                   (df['timestamp'] >= previous_timestamp) &
+                   (df['sender_name'] == person) & 
+                   (df['type'] == 'Generic')]['content'].str.len().fillna(0)))
+
+	        person_data['message_count'] = len(df[(df['timestamp'] < current_timestamp) &
+                   (df['timestamp'] >= previous_timestamp) &
+                   (df['sender_name'] == person) & 
+                   (df['type'] == 'Generic')])
+	        
+	        data_per_week.append(person_data)
+	    
+	    temp = {}
+	    temp['timestamp'] = int(current_timestamp)
+	    temp['data'] = data_per_week
+	    
+	    result.append(temp)
+	
+
 	# Exporting as JSON files.
+	print('\nExporting as JSON')
 	df[df['type'] == 'Generic'].to_json(path_or_buf = cleaned_messages_json, orient='records')
 	df[(df['type'] == 'AddParticipant') | (df['type'] == 'Leaver')].to_json(path_or_buf = cleaned_participants_json, orient='records')
 	df[df['type'] == 'GroupRename'].to_json(path_or_buf = cleaned_conversation_name_json, orient='records')
 	df[df['type'] == 'ChangedColour'].to_json(path_or_buf = cleaned_conversation_colour_json, orient='records')
 	df[df['type'] == 'ChangedEmoji'].to_json(path_or_buf = cleaned_conversation_emoji_json, orient='records')
 	
+	df_hidden = df
+	del df_hidden['content']
+	df_hidden[df_hidden['type'] == 'Generic'].to_json(path_or_buf = cleaned_messages_hidden_json, orient='records')
+	
+	
+	with open(data_per_user_per_week, 'w') as outfile:
+	    json.dump(result, outfile)
 
+	    
+	# Printing termination time
 	t3 = time.time() - t - (t2 - t1)
 	if t3 > 60 :
 		t3_m = t3 / 60
