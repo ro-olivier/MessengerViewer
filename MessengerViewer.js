@@ -37,7 +37,11 @@
     .outerRadius(radius);
 
   var pie = d3.pie()
-    .value(function(d) { return d.count; })
+    .value(function(d) { return d.message_count; })
+    .sort(null);
+
+  var pie_char = d3.pie()
+    .value(function(d) { return d.char_count; })
     .sort(null);
 
   var tooltip_message = d3.select('#message_chart')
@@ -89,14 +93,8 @@
   var dataset = complete_dataset[0].data;
 
   dataset.forEach(function(d) {
-      d.count = +d.message_count;
-      d.enabled = true;                                         
-    });
-
-  var dataset_char = complete_dataset[0].data;
-
-  dataset_char.forEach(function(d) {
-      d.count = +d.char_count;
+      d.message_count = +d.message_count;
+      d.char_count = +d.char_count;
       d.enabled = true;                                         
     });
 
@@ -256,22 +254,14 @@
     dataset.forEach(function(d) {
       var index = previous_dataset.findIndex(x => x.name == d.name);
       console.log("index pour " + d.name + ": " + index);
-        d.count = +d.message_count;
+        d.message_count = +d.message_count;
+        d.char_count = +d.char_count;
         d.enabled = previous_dataset[index].enabled;
       });
 
     console.log(dataset);
 
-    var previous_dataset_char = dataset_char;
-    dataset_char = complete_dataset[min_index].data;
-
-    dataset_char.forEach(function(d) {
-        d.count = +d.char_count;
-        d.enabled = previous_dataset_char[previous_dataset_char.findIndex(x => x.name == d.name)].enabled;                         
-      });
-
       path = path.data(pie(dataset));
-      path_char = path_char.data(pie(dataset_char));  
 
       path.transition()                                       
         .duration(750)                                        
@@ -282,6 +272,8 @@
             return arc(interpolate(t));                       
           };                                                  
         });  
+
+      path_char = path_char.data(pie_char(dataset));  
 
       path_char.transition()                                       
         .duration(750)                                        
@@ -339,7 +331,7 @@
     */
 
     var path_char = svg_char.selectAll('path')
-      .data(pie(dataset_char))
+      .data(pie_char(dataset))
       .enter()
       .append('path')
       .attr('d', arc)
@@ -349,11 +341,11 @@
       .each(function(d) { this._current = d; });                
 
     path_char.on('mouseover', function(d) { 
-      var total_message = d3.sum(dataset_char.map(function(d) {
+      var total_message = d3.sum(dataset.map(function(d) {
         return (d.enabled) ? d.message_count : 0;                       
       }));
 
-      var total_char = d3.sum(dataset_char.map(function(d) {
+      var total_char = d3.sum(dataset.map(function(d) {
         return (d.enabled) ? d.char_count : 0;                       
       }));
 
@@ -402,18 +394,18 @@
         if (rect.attr('class') === 'disabled') {                
           rect.attr('class', '');                               
         } else {                                                
-          if (totalEnabled < 2) return;                         
-          rect.attr('class', 'disabled');                       
-          enabled = false;                                      
+          if (totalEnabled > 2) {                         
+            rect.attr('class', 'disabled');                       
+            enabled = false;
+          }                                    
         }                                                       
 
         pie.value(function(d) {                                 
           if (d.name === name) d.enabled = enabled;           
-          return (d.enabled) ? d.count : 0;                     
+          return (d.enabled) ? d.message_count : 0;                     
         });                                                       
 
-        path = path.data(pie(dataset));
-        path_char = path_char.data(pie(dataset_char));                         
+        path = path.data(pie(dataset));            
 
         path.transition()                                       
           .duration(750)                                        
@@ -424,6 +416,13 @@
               return arc(interpolate(t));                       
             };                                                  
           });  
+
+        pie_char.value(function(d) {                                 
+          if (d.name === name) d.enabled = enabled;           
+          return (d.enabled) ? d.char_count : 0;                     
+        });  
+
+        path_char = path_char.data(pie_char(dataset));  
 
         path_char.transition()                                       
           .duration(750)                                        
