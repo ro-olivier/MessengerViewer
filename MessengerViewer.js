@@ -168,6 +168,10 @@
               var cx_min = d3.select("#handle_min").attr("cx");
               var cx_max = d3.select("#handle_max").attr("cx");
 
+              if (parseInt(cx_min) < 0) {
+                hue("min", x.invert(0));
+              }
+
               //console.log("cx_min = " + cx_min + " and cx_max = " + cx_max);
               
               if ((parseInt(d3.event.x) > parseInt(parseInt(-10) + parseInt(cx_max))) && (parseInt(d3.event.x) < parseInt(parseInt(10) + parseInt(cx_max)))) {
