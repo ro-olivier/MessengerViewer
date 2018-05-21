@@ -8,14 +8,14 @@
       #message_chart,
       #char_chart {
         height: 360px;
-        margin: 10 auto;                                               
-        position: relative;
+        margin: 10 auto;     
         width: 360px;
         background: #aaa;
       }
 
       #charts_zone {
         display: inline-block;
+        height: 750px;
       }
 
       #message_chart_div {
@@ -25,6 +25,16 @@
       #char_chart_div {
         float: right;
       }   
+
+      #stacked_chart {
+        background: #aba;
+        margin: 10 auto;
+        height: 360px;                                              
+        position: absolute;
+        width: 720px;
+        top: 420px;
+        left: 340px;
+      }
 
       .chart_div {
         height: 380px;
@@ -143,6 +153,11 @@
         <h1>Characters per User</h1>
 
         <div id="char_chart"></div>
+      </div>
+
+      <div id = "stacked_chart">
+        <h1>Cumulated messages per User</h1>
+
       </div>
     </div>
 

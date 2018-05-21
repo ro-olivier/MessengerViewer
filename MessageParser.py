@@ -86,14 +86,19 @@ if __name__ == "__main__":
 	# Some filenames (input and output)
 	filepath_json = base_directory + r'\message.json'
 
+	# Old filenames (kept because it might be useful later)
 	cleaned_messages_json = base_directory + r'\cleaned_messages.json'
 	cleaned_participants_json = base_directory + r'\cleaned_participants.json'
 	cleaned_conversation_name_json = base_directory + r'\cleaned_conv_name.json'
 	cleaned_conversation_emoji_json = base_directory + r'\cleaned_conv_emoji.json'
 	cleaned_conversation_colour_json = base_directory + r'\cleaned_conv_colour.json'
 	cleaned_messages_hidden_json = base_directory + r'\hidden_messages.json'
-	data_per_user_per_week = r'C:\Users\Robin\Documents\Prog\Messenger Viewer\data_per_user_per_week.json'
 	
+	# Files used by D3Js scripts
+	messages_JSON = base_directory + r'\data_per_user_per_week.json'
+	stacked_messages_JSON = base_directory + r'\stacked_messages.json'
+	stacked_chars_JSON = base_directory + r'\stacked_chars.json'
+
 	# Opening the file and loading the JSON
 	with open(filepath_json, 'r', encoding='utf-8') as f:
 		data_encoded = json.load(f)
@@ -381,34 +386,49 @@ if __name__ == "__main__":
 
 	result = []
 
-	while current_timestamp < max_timestamp:
-	    previous_timestamp = current_timestamp
-	    current_timestamp = current_timestamp + one_week
-	    data_per_week = []
-	    
-	    for person in real_participants:
-	        person_data = {}
-	        
-	        person_data['name'] = person
+	new_stacked_data_message = []
+	new_stacked_data_char = []
 
-	        person_data['char_count'] = int(sum(df[(df['timestamp'] < current_timestamp) &
+	while current_timestamp < max_timestamp:
+		previous_timestamp = current_timestamp
+		current_timestamp = current_timestamp + one_week
+		data_per_week = []
+		stacked_data_message_per_week = {'timestamp':int(current_timestamp)}
+		stacked_data_char_per_week = {'timestamp':int(current_timestamp)}
+
+		i = 0
+		for person in real_participants:
+
+			person_data = {}
+
+			person_data['name'] = person
+
+			person_data['char_count'] = int(sum(df[(df['timestamp'] < current_timestamp) &
                    (df['timestamp'] >= previous_timestamp) &
                    (df['sender_name'] == person) & 
                    (df['type'] == 'Generic')]['content'].str.len().fillna(0)))
 
-	        person_data['message_count'] = len(df[(df['timestamp'] < current_timestamp) &
+			person_data['message_count'] = len(df[(df['timestamp'] < current_timestamp) &
                    (df['timestamp'] >= previous_timestamp) &
                    (df['sender_name'] == person) & 
                    (df['type'] == 'Generic')])
 	        
-	        data_per_week.append(person_data)
-	    
-	    temp = {}
-	    temp['timestamp'] = int(current_timestamp)
-	    temp['data'] = data_per_week
-	    
-	    result.append(temp)
-	
+			data_per_week.append(person_data)
+
+			stacked_data_message_per_week[person] = person_data['message_count']        
+			stacked_data_char_per_week[person] = person_data['char_count']
+
+			i = i + 1
+
+		temp = {}
+		temp['timestamp'] = int(current_timestamp)
+		temp['data'] = data_per_week
+
+		result.append(temp)
+
+		new_stacked_data_message.append(stacked_data_message_per_week)
+		new_stacked_data_char.append(stacked_data_char_per_week)
+
 
 	# Exporting as JSON files.
 	print('\nExporting as JSON')
@@ -423,8 +443,14 @@ if __name__ == "__main__":
 	df_hidden[df_hidden['type'] == 'Generic'].to_json(path_or_buf = cleaned_messages_hidden_json, orient='records')
 	
 	
-	with open(data_per_user_per_week, 'w') as outfile:
+	with open(messages_JSON, 'w') as outfile:
 	    json.dump(result, outfile)
+
+	with open(stacked_messages_JSON, 'w') as outfile:
+	    json.dump(new_stacked_data_message, outfile)
+	    
+	with open(stacked_chars_JSON, 'w') as outfile:
+	    json.dump(new_stacked_data_char, outfile)
 
 	    
 	# Printing termination time
