@@ -95,7 +95,6 @@ if __name__ == "__main__":
 	cleaned_messages_hidden_json = base_directory + r'\hidden_messages.json'
 	
 	# Files used by D3Js scripts
-	messages_JSON = base_directory + r'\data_per_user_per_week.json'
 	stacked_messages_JSON = base_directory + r'\stacked_messages.json'
 	stacked_chars_JSON = base_directory + r'\stacked_chars.json'
 
@@ -384,15 +383,12 @@ if __name__ == "__main__":
 
 	current_timestamp = min_timestamp
 
-	result = []
-
 	new_stacked_data_message = []
 	new_stacked_data_char = []
 
 	while current_timestamp < max_timestamp:
 		previous_timestamp = current_timestamp
 		current_timestamp = current_timestamp + one_week
-		data_per_week = []
 		stacked_data_message_per_week = {'timestamp':int(current_timestamp)}
 		stacked_data_char_per_week = {'timestamp':int(current_timestamp)}
 
@@ -412,19 +408,11 @@ if __name__ == "__main__":
                    (df['timestamp'] >= previous_timestamp) &
                    (df['sender_name'] == person) & 
                    (df['type'] == 'Generic')])
-	        
-			data_per_week.append(person_data)
 
 			stacked_data_message_per_week[person] = person_data['message_count']        
 			stacked_data_char_per_week[person] = person_data['char_count']
 
 			i = i + 1
-
-		temp = {}
-		temp['timestamp'] = int(current_timestamp)
-		temp['data'] = data_per_week
-
-		result.append(temp)
 
 		new_stacked_data_message.append(stacked_data_message_per_week)
 		new_stacked_data_char.append(stacked_data_char_per_week)
@@ -441,10 +429,6 @@ if __name__ == "__main__":
 	df_hidden = df
 	del df_hidden['content']
 	df_hidden[df_hidden['type'] == 'Generic'].to_json(path_or_buf = cleaned_messages_hidden_json, orient='records')
-	
-	
-	with open(messages_JSON, 'w') as outfile:
-	    json.dump(result, outfile)
 
 	with open(stacked_messages_JSON, 'w') as outfile:
 	    json.dump(new_stacked_data_message, outfile)
