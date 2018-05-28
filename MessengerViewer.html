@@ -1,80 +1,24 @@
 <!DOCTYPE html>
-<html>
+  <meta charset="utf-8">
   <head>
-    <meta charset="utf-8">
-    <title>MessengerViewer</title>
-
     <style>
-      #message_chart,
-      #char_chart {
-        height: 360px;
-        margin: 10 auto;     
-        width: 360px;
-        background: #aaa;
+
+      .area {
+        fill: steelblue;
+        clip-path: url(#clip);
       }
 
-      #charts_zone {
-        display: inline-block;
-        height: 750px;
+      .zoom {
+        cursor: move;
+        fill: none;
+        pointer-events: all;
       }
 
-      #message_chart_div {
-        float: left;
-      }            
-
-      #char_chart_div {
-        float: right;
-      }   
-
-      #stacked_chart {
-        background: #aba;
-        margin: 10 auto;
-        height: 360px;                                              
-        position: absolute;
-        width: 720px;
-        top: 420px;
-        left: 340px;
-      }
-
-      .chart_div {
-        height: 380px;
-        margin: auto 10px;                                               
-        position: relative;
-        width: 360px;
-        background: #aaa;
-      }
-
-      #user_input {
-        height: 500px;
-        margin: auto 10px;                                               
-        position: relative;
-        width: 300px;
-        background: #c0c;
-        float: left;
-        box-shadow: 0 0 5px #999999;
-        border: 2px;
-      }
-
-      .tooltip {
-        background: #eee;
-        box-shadow: 0 0 5px #999999;
-        color: #333;
-        display: none;
-        font-size: 12px;
-        left: 125px;
-        padding: 0px;
-        position: absolute;
-        text-align: center;
-        top: 150px;
-        width: 110px;
-        z-index: 10;
-      }
-
-      #legend_block {
+      .legend, .activateAll {
         font-size: 12px;
       }
 
-      rect {
+      .legend rect, #activateAllRect {
         cursor: pointer;                                              
         stroke-width: 2;
       }
@@ -83,84 +27,14 @@
         fill: transparent !important;                                 
       }
 
-      h1 {                                                            
-        font-size: 14px;                                              
-        text-align: center;                                           
-      }
-
-      .ticks {
-        font: 10px sans-serif;
-      }
-
-      .track,
-      .track-inset,
-      .track-overlay {
-        stroke-linecap: round;
-      }
-
-      .track {
-        stroke: #000;
-        stroke-opacity: 0.3;
-        stroke-width: 10px;
-      }
-
-      .track-inset {
-        stroke: #ddd;
-        stroke-width: 8px;
-      }
-
-      .track-overlay {
-        pointer-events: stroke;
-        stroke-width: 50px;
-        stroke: transparent;;
-      }
-
-      .handle {
-        fill: #fff;
-        stroke: #000;
-        stroke-opacity: 0.5;
-        stroke-width: 1.25px;
-      }
-
-      #dates_block {
-        text-align: center;
-        font-size: 12px;
-      }
-
-      #dates_block.p {
-        margin: 0;
-      }
-
     </style>
 
-    <script type="text/javascript" src="https://d3js.org/d3.v4.min.js"></script>
-
+    <script src="https://d3js.org/d3.v4.min.js"></script>
   </head>
   <body>
-     
-    <div id="user_input">
-      <h1>User Input Zone</h1>
-    </div>
-
-    <div id="charts_zone">
-      <div class="chart_div" id="message_chart_div"> 
-        <h1>Message per User</h1>
-
-        <div id="message_chart"></div>
-      </div>
-
-      <div class="chart_div" id="char_chart_div"> 
-        <h1>Characters per User</h1>
-
-        <div id="char_chart"></div>
-      </div>
-
-      <div id = "stacked_chart">
-        <h1>Cumulated messages per User</h1>
-
-      </div>
-    </div>
-
+    <center>
+      <svg width="1080" height="780"></svg>
+    </center>
     <script type="text/javascript" src="MessengerViewer.js"></script>
   </body>
 </html>
