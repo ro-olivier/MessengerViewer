@@ -1,9 +1,9 @@
 var initial_end = 0;
 
 var svg = d3.select("svg"),
-    margin = {top: 20, right: 20, bottom: 390, left: 40},
-    margin2 = {top: 430, right: 20, bottom: 300, left: 40},
-    margin3 = {top: 640, right: 20, bottom: 20, left: 40},
+    margin = {top: 20, right: 20, bottom: 390, left: 60},
+    margin2 = {top: 430, right: 20, bottom: 300, left: 60},
+    margin3 = {top: 640, right: 20, bottom: 20, left: 60},
     width = +svg.attr("width") - margin.left - margin.right,
     height = +svg.attr("height") - margin.top - margin.bottom,
     height2 = +svg.attr("height") - margin2.top - margin2.bottom,
@@ -16,6 +16,28 @@ var legendRectSize = 18;
 var legendVerticalSpacing = 4;
 var legendHorizontalSpacing = 150;
 var legendMaxItemOnColumn = 6;
+
+var legend_vertical_offset = +margin3.top - +radius ;
+
+var donut_lateral_offset = +margin3.left + +(3 * width / 4)
+var tooltip_lateral_offset = 2*margin3.left + +(3 * width / 4) + radius;
+var tooltip_vertical_offset = +margin3.top - radius / 2;
+
+var tooltip_height = 100;
+var tooltip_width = 100;
+var tooltip_text_size = 12;
+
+var tooltip_element_vertical_offset = +tooltip_vertical_offset + +(tooltip_height / 2);
+var tooltip_vertical_spacing = 20;
+var tooltip_element_vertical_offset_negative = +tooltip_element_vertical_offset - tooltip_vertical_spacing;
+var tooltip_element_vertical_offset_positive = +tooltip_element_vertical_offset + +tooltip_vertical_spacing;
+
+var button_height = 40;
+var button_width = 100;
+var button_text_size = 12;
+var button_lateral_offset = 2*margin3.left + +(width / 2) - radius;
+var button_vertical_offset = legend_vertical_offset ;
+var second_button_vertical_offset = button_vertical_offset + button_height;
 
 var color = d3.scaleOrdinal(d3.schemeCategory20b);
 var keys;
@@ -32,6 +54,9 @@ var xAxis = d3.axisBottom(x),
 var min_timestamp;
 var max_timestamp;
 
+var currentTotalEnabled;
+var enabledParticipants = {};
+
 var brush = d3.brushX()
     .extent([[0, 0], [width, height2]])
     .on("brush end", brushed);
@@ -42,9 +67,14 @@ var zoom = d3.zoom()
     .extent([[0, 0], [width, height]])
     .on("zoom", zoomed);
 
-var stack = d3.stack()
+var stack_message = d3.stack()
     .value(function(d, key) {
-      return enabledParticipants[key] ? d[key] : 0;
+      return enabledParticipants[key] ? d[key].messages : 0;
+    });
+
+var stack_char = d3.stack()
+    .value(function(d, key) {
+      return enabledParticipants[key] ? d[key].chars : 0;
     });
 
 var area = d3.area()
@@ -57,7 +87,13 @@ var area2 = d3.area()
     .curve(d3.curveMonotoneX)
     .x(function(d) { return x2(new Date(d.timestamp * 1000)); })
     .y0(height2)
-    .y1(function(d) { return y2(d.total); });
+    .y1(function(d) { 
+      if (data_type === 'messages') {
+        return y2(d.total_message); 
+      } else {
+        return y2(d.total_char);
+      };
+    });
 
 var current_layer;
 var new_layer;
@@ -86,24 +122,10 @@ var context = svg.append("g")
     .attr("class", "context")
     .attr("transform", "translate(" + margin2.left + "," + margin2.top + ")");
 
-var donut_lateral_offset = +margin3.left + +(3 * width / 4)
-var tooltip_lateral_offset = 2*margin3.left + +(3 * width / 4) + radius;
-var tooltip_vertical_offset = +margin3.top - radius / 2;
-
-var tooltip_height = 100;
-var tooltip_width = 100;
-var tooltip_text_size = 12;
-
-var tooltip_element_vertical_offset = +tooltip_vertical_offset + +(tooltip_height / 2);
-var tooltip_vertical_spacing = 20;
-var tooltip_element_vertical_offset_negative = +tooltip_element_vertical_offset - tooltip_vertical_spacing;
-var tooltip_element_vertical_offset_positive = +tooltip_element_vertical_offset + +tooltip_vertical_spacing;
-
 var donut = svg.append("g")
     .attr("class", "donut")
     .attr("transform", "translate(" + donut_lateral_offset + "," + margin3.top + ")");
 
-var legend_vertical_offset = +margin3.top - +radius ;
 var legend = svg.append("g")
     .attr("class", "legend")
     .attr("transform", "translate(" + margin3.left + "," + legend_vertical_offset + ")");
@@ -155,11 +177,30 @@ var percent = tooltip.append('text')
   .attr('font-size', tooltip_text_size)
   .attr("transform", "translate(" + +tooltip_lateral_offset + "," + tooltip_element_vertical_offset_positive + ")");
 
-var currentTotalEnabled;
-var enabledParticipants = {};
 
-d3.json('stacked_messages.json', function(error, data) {
+var button_data = [{label: "Messages view", x: button_lateral_offset, y: button_vertical_offset },
+        {label: "Characters view", x: button_lateral_offset, y: second_button_vertical_offset }];
+
+var button = d3.button()
+    .on('press', function(d,i) { toggle_data_type(); })
+    .on('release', function(d, i) { return; });
+
+var buttons = svg.selectAll('.button')
+    .data(button_data)
+    .enter()
+    .append('g')
+    .attr('class', 'toggle_data_type_button')
+    .call(button);
+
+var data_type;
+
+//d3.json('stacked_messages.json', function(error, data) {
+d3.json('stacked.json', function(error, data) {
   if (error) throw error;
+
+  data_type = 'messages';
+  console.log('init messages');
+  d3.select('#d3-button0').select('rect').attr('class', 'pressed');
 
   initial_end = data.length;
 
@@ -170,7 +211,8 @@ d3.json('stacked_messages.json', function(error, data) {
   currentTotalEnabled = keys.length;
 
   color.domain(keys);
-  stack.keys(keys);
+  stack_message.keys(keys);
+  stack_char.keys(keys);
 
   keys.forEach(function (d) {
     enabledParticipants[d] = true;
@@ -184,39 +226,48 @@ d3.json('stacked_messages.json', function(error, data) {
   x.domain([new Date(min_timestamp * 1000), new Date(max_timestamp * 1000)]);
   x2.domain(x.domain());
 
-  cumul_data = {};
+  cumul_data_messages = {};
+  cumul_data_chars = {};
 
   stacked_data.forEach(function(d, i){
-    d.total = 0;
+    d.total_message = 0;
+    d.total_char = 0;
 
-    if (Object.keys(cumul_data).length == 0) {
+    if (Object.keys(cumul_data_messages).length == 0) {
       keys.forEach(function(k){
-        d.total += d[k];
-        cumul_data[k] = d[k];
+        d.total_message = +d[k].messages;
+        d.total_char = +d[k].chars;
+        cumul_data_messages[k] = +d[k].messages;
+        cumul_data_chars[k] = +d[k].chars;
       });
     } else {
     //d.timestamp = d['timestamp'];
       keys.forEach(function(k){
-        d.total += d[k];
-        cumul_data[k] += d[k];
+        d.total_message += +d[k].messages;
+        d.total_char += +d[k].chars;
+        cumul_data_messages[k] += +d[k].messages;
+        cumul_data_chars[k] += +d[k].chars;
       });
     } 
   });
 
-  //console.log('cumul_data=' + JSON.stringify(cumul_data));
 
-  cumul_data_pie_ = transform(cumul_data, keys);
+  cumul_data_pie_messages_ = transform(cumul_data_messages, keys);
+  cumul_data_pie_messages = applyEnabledParticipant(cumul_data_pie_messages_);
+  //console.log('cumul_data_messages=' + JSON.stringify(cumul_data_messages));
+  //console.log('cumul_data_pie_messages_=' + JSON.stringify(cumul_data_pie_messages_)); 
+  //console.log('cumul_data_pie_messages=' + JSON.stringify(cumul_data_pie_messages)); 
 
-  //console.log('cumul_data_pie_=' + JSON.stringify(cumul_data_pie_)); 
+  cumul_data_pie_chars_ = transform(cumul_data_chars, keys);
+  cumul_data_pie_chars = applyEnabledParticipant(cumul_data_pie_chars_);
+  //console.log('cumul_data_chars=' + JSON.stringify(cumul_data_chars));
+  //console.log('cumul_data_pie_chars_=' + JSON.stringify(cumul_data_pie_chars_)); 
+  //console.log('cumul_data_pie_chars=' + JSON.stringify(cumul_data_pie_chars)); 
 
-  cumul_data_pie = applyEnabledParticipant(cumul_data_pie_);
-
-  //console.log('cumul_data_pie=' + JSON.stringify(cumul_data_pie));  
-
-  y.domain([0, d3.max(stacked_data, function(d) { return d.total; })]).nice();
+  y.domain([0, d3.max(stacked_data, function(d) { return d.total_message; })]).nice();
   y2.domain(y.domain());
 
-  current_layer = stack(stacked_data);
+  current_layer = stack_message(stacked_data);
 
   focus.selectAll(".area")
     .data(current_layer)
@@ -258,7 +309,7 @@ d3.json('stacked_messages.json', function(error, data) {
       .call(zoom);
 
   path = donut.selectAll('path')
-  .data(pie(cumul_data_pie))
+  .data(pie(cumul_data_pie_messages))
   .enter()
   .append('path')
   .attr('d', arc)
@@ -307,38 +358,70 @@ function brushed() {
       .scale(width / (s[1] - s[0]))
       .translate(-s[0], 0));
 
-  cumul_data = {};
+  if (data_type === 'messages') {
+    cumul_data_messages = {};
 
-  stacked_data.forEach(function(d, i){
-    d.total = 0;
+    stacked_data.forEach(function(d, i){
+      d.total_message = 0;
 
-    if ((d.timestamp * 1000) >= s.map(x2.invert, x2)[0].getTime() && 
-      (d.timestamp * 1000) <= s.map(x2.invert, x2)[1].getTime()) {
+      if ((d.timestamp * 1000) >= s.map(x2.invert, x2)[0].getTime() && 
+        (d.timestamp * 1000) <= s.map(x2.invert, x2)[1].getTime()) {
 
-    if (Object.keys(cumul_data).length == 0) {
-          keys.forEach(function(k){
-            d.total += d[k];
-            cumul_data[k] = d[k];
-          });
-        } else {
-        //d.timestamp = d['timestamp'];
-          keys.forEach(function(k){
-            d.total += d[k];
-            cumul_data[k] += d[k];
-          });
-      } 
-    }
-  });
+      if (Object.keys(cumul_data_messages).length == 0) {
+            keys.forEach(function(k){
+              d.total_message += d[k].messages;
+              cumul_data_messages[k] = d[k].messages;
+            });
+          } else {
+          //d.timestamp = d['timestamp'];
+            keys.forEach(function(k){
+              d.total_message += d[k].messages;
+              cumul_data_messages[k] += d[k].messages;
+            });
+        } 
+      }
+    });
 
-  cumul_data_pie_ = transform(cumul_data, keys);
-  cumul_data_pie = applyEnabledParticipant(cumul_data_pie_);
+    cumul_data_pie_messages_ = transform(cumul_data_messages, keys);
+    cumul_data_pie_messages = applyEnabledParticipant(cumul_data_pie_messages_);
 
-  path = donut.selectAll('path')
-  .data(pie(cumul_data_pie));   
+    path = donut.selectAll('path')
+    .data(pie(cumul_data_pie_messages));  
+  } else {
+    cumul_data_chars = {};
+
+    stacked_data.forEach(function(d, i){
+      d.total_char = 0;
+
+      if ((d.timestamp * 1000) >= s.map(x2.invert, x2)[0].getTime() && 
+        (d.timestamp * 1000) <= s.map(x2.invert, x2)[1].getTime()) {
+
+      if (Object.keys(cumul_data_chars).length == 0) {
+            keys.forEach(function(k){
+              d.total_char += d[k].chars;
+              cumul_data_chars[k] = d[k].chars;
+            });
+          } else {
+          //d.timestamp = d['timestamp'];
+            keys.forEach(function(k){
+              d.total_char += d[k].chars;
+              cumul_data_chars[k] += d[k].chars;
+            });
+        } 
+      }
+    });
+
+    cumul_data_pie_chars_ = transform(cumul_data_chars, keys);
+    cumul_data_pie_chars = applyEnabledParticipant(cumul_data_pie_chars_);
+
+    path = donut.selectAll('path')
+    .data(pie(cumul_data_pie_chars));   
+  } 
 
   path.transition()                                       
     .duration(750)                                        
     .attrTween('d', compute_tween_arc);  
+
 }
 
 function zoomed() {
@@ -349,39 +432,87 @@ function zoomed() {
   focus.selectAll(".area").attr("d", area);
   focus.select(".axis--x").call(xAxis);
   context.select(".brush").call(brush.move, x.range().map(t.invertX, t));
+  console.log('zoomed');
+  if (data_type === 'messages') {
+    cumul_data_messages = {};
 
-  cumul_data = {};
+    stacked_data.forEach(function(d, i){
+      d.total_message = 0;
 
-  stacked_data.forEach(function(d, i){
-    d.total = 0;
+      if ((d.timestamp * 1000) >= x.domain()[0].getTime() && 
+          (d.timestamp * 1000) <= x.domain()[1].getTime()) {
 
-    if ((d.timestamp * 1000) >= x.domain()[0].getTime() && 
-      (d.timestamp * 1000) <= x.domain()[1].getTime()) {
+      if (Object.keys(cumul_data_messages).length == 0) {
+            keys.forEach(function(k){
+              d.total_message += d[k].messages;
+              cumul_data_messages[k] = d[k].messages;
+            });
+          } else {
+          //d.timestamp = d['timestamp'];
+            keys.forEach(function(k){
+              d.total_message += d[k].messages;
+              cumul_data_messages[k] += d[k].messages;
+            });
+        } 
+      }
+    });
 
-    if (Object.keys(cumul_data).length == 0) {
-          keys.forEach(function(k){
-            d.total += d[k];
-            cumul_data[k] = d[k];
-          });
-        } else {
-        //d.timestamp = d['timestamp'];
-          keys.forEach(function(k){
-            d.total += d[k];
-            cumul_data[k] += d[k];
-          });
-      } 
-    }
-  });
+    cumul_data_pie_messages_ = transform(cumul_data_messages, keys);
+    cumul_data_pie_messages = applyEnabledParticipant(cumul_data_pie_messages_);
 
-  cumul_data_pie_ = transform(cumul_data, keys);
-  cumul_data_pie = applyEnabledParticipant(cumul_data_pie_);
+    path = donut.selectAll('path')
+    .data(pie(cumul_data_pie_messages));
+  } else {
+    cumul_data_chars = {};
 
-  path = donut.selectAll('path')
-  .data(pie(cumul_data_pie));   
+    stacked_data.forEach(function(d, i){
+      d.total_char = 0;
+
+      if ((d.timestamp * 1000) >= x.domain()[0].getTime() && 
+          (d.timestamp * 1000) <= x.domain()[1].getTime()) {
+
+      if (Object.keys(cumul_data_chars).length == 0) {
+            keys.forEach(function(k){
+              d.total_char += d[k].chars;
+              cumul_data_chars[k] = d[k].chars;
+            });
+          } else {
+          //d.timestamp = d['timestamp'];
+            keys.forEach(function(k){
+              d.total_char += d[k].chars;
+              cumul_data_chars[k] += d[k].chars;
+            });
+        } 
+      }
+    });
+
+    cumul_data_pie_chars_ = transform(cumul_data_chars, keys);
+    cumul_data_pie_chars = applyEnabledParticipant(cumul_data_pie_chars_);
+
+    path = donut.selectAll('path')
+    .data(pie(cumul_data_pie_chars));
+  }
 
   path.transition()                                       
     .duration(750)                                        
     .attrTween('d', compute_tween_arc);  
+
+
+    console.log('stacked_data = ' + JSON.stringify(stacked_data));
+  if (data_type === 'messages') {
+    y.domain([0, d3.max(stacked_data, function(d) { return d.total_message; })]).nice();
+    console.log('max message =' + d3.max(stacked_data, function(d) { return d.total_message; }));
+  } else {
+    y.domain([0, d3.max(stacked_data, function(d) { return d.total_char; })]).nice();  
+    console.log('max chars = ' + d3.max(stacked_data, function(d) { return d.total_char; }));
+  }
+  console.log('current data-type = '+ data_type);
+  console.log(y.domain());
+  y2.domain(y.domain());
+  d3.select('.axis--y')
+    .transition()
+    .duration(750)
+    .call(d3.axisLeft(y));
 }
 
 function transform(targetObj, keyArray) {
@@ -434,25 +565,29 @@ function compute_tween_arc(d) {
   };                                                  
 }
 
-function compute_tween_area(d) {
-  var interpolate = d3.interpolate(this._current, d); 
-  this._current = interpolate(0);                     
-  return function(t) {                                
-    return area(interpolate(t));                       
-  };                                                  
-}
-
 function show_pie_tooltip(d) {
 
-  var total_message = d3.sum(cumul_data_pie.map(function(d) {
-    return (d.enabled) ? d.count : 0;
-  }));
+  if (data_type === 'messages') {
+    var total_message = d3.sum(cumul_data_pie_messages.map(function(d) {
+      return (d.enabled) ? d.count : 0;
+    }));
 
-  var percent = Math.round(1000 * d.data.count / total_message) / 10;
-  tooltip.select('.name').html(d.data.name);
-  tooltip.select('.count').html(d.data.count + ' messages');
-  tooltip.select('.percent').html(percent + '% of ' + total_message);
-  tooltip.style('display', 'block');
+    var percent = Math.round(1000 * d.data.count / total_message) / 10;
+    tooltip.select('.name').html(d.data.name);
+    tooltip.select('.count').html(d.data.count + ' messages');
+    tooltip.select('.percent').html(percent + '% of ' + total_message);
+    tooltip.style('display', 'block');
+  } else {
+    var total_char = d3.sum(cumul_data_pie_chars.map(function(d) {
+      return (d.enabled) ? d.count : 0;
+    }));
+
+    var percent = Math.round(1000 * d.data.count / total_char) / 10;
+    tooltip.select('.name').html(d.data.name);
+    tooltip.select('.count').html(d.data.count + ' chars');
+    tooltip.select('.percent').html(percent + '% of ' + total_char);
+    tooltip.style('display', 'block');
+  }
 
 }
 
@@ -464,7 +599,7 @@ function toggle_participant(name) {
 
   var rect = d3.select(this);                             
   var enabled = true;                       
-  var totalEnabled = d3.sum(cumul_data_pie.map(function(d) { 
+  var totalEnabled = d3.sum(cumul_data_pie_messages.map(function(d) { 
     return (d.enabled) ? 1 : 0;                           
   }));
 
@@ -480,26 +615,41 @@ function toggle_participant(name) {
     }                                    
   }
 
-  enabledParticipants[name] = enabled;
-  applyEnabledParticipant(cumul_data_pie);
-
   if (currentTotalEnabled == keys.length) {
     d3.select('#activateAllRect').attr('class', ''); 
-  }                                                 
+  }  
 
-  pie.value(function(d) {                                 
-    if (d.name === name) d.enabled = enabled;           
-    return (d.enabled) ? d.count : 0;                     
-  });                                 
+  enabledParticipants[name] = enabled;
 
-  path = donut.selectAll('path')
-    .data(pie(cumul_data_pie));   
+  if (data_type === 'messages') {
+    applyEnabledParticipant(cumul_data_pie_messages);
+
+    pie.value(function(d) {                                 
+      if (d.name === name) d.enabled = enabled;           
+      return (d.enabled) ? d.count : 0;                     
+    });                                 
+
+    path = donut.selectAll('path')
+      .data(pie(cumul_data_pie_messages));   
+
+    new_layer = stack_message(stacked_data);
+  } else {
+    applyEnabledParticipant(cumul_data_pie_chars);
+
+    pie.value(function(d) {                                 
+      if (d.name === name) d.enabled = enabled;           
+      return (d.enabled) ? d.count : 0;                     
+    });                                 
+
+    path = donut.selectAll('path')
+      .data(pie(cumul_data_pie_chars));   
+
+    new_layer = stack_char(stacked_data);
+  }
 
   path.transition()                                       
     .duration(750)                                        
     .attrTween('d', compute_tween_arc);
-
-  new_layer = stack(stacked_data);
 
   var t;
   focus.selectAll(".area")
@@ -527,21 +677,35 @@ function toggle_all(){
     enabledParticipants[k] = enabled;
   });
 
-  applyEnabledParticipant(cumul_data_pie);                                              
+  if (data_type === 'messages') {
+    applyEnabledParticipant(cumul_data_pie_messages);
 
-  pie.value(function(d) {                                 
-    if (d.name === name) d.enabled = enabled;           
-    return (d.enabled) ? d.count : 0;                     
-  });                                 
+    pie.value(function(d) {                                 
+      if (d.name === name) d.enabled = enabled;           
+      return (d.enabled) ? d.count : 0;                     
+    });                                 
 
-  path = donut.selectAll('path')
-  .data(pie(cumul_data_pie));   
+    path = donut.selectAll('path')
+      .data(pie(cumul_data_pie_messages));   
+
+    new_layer = stack_message(stacked_data);
+  } else {
+    applyEnabledParticipant(cumul_data_pie_chars);
+
+    pie.value(function(d) {                                 
+      if (d.name === name) d.enabled = enabled;           
+      return (d.enabled) ? d.count : 0;                     
+    });                                 
+
+    path = donut.selectAll('path')
+      .data(pie(cumul_data_pie_chars));   
+
+    new_layer = stack_char(stacked_data);
+  }
 
   path.transition()                                       
     .duration(750)                                        
     .attrTween('d', compute_tween_arc);    
-
-  new_layer = stack(stacked_data);
 
   var t;
   focus.selectAll(".area")
@@ -550,3 +714,80 @@ function toggle_all(){
     .duration(750)
     .attr('d', area);
   }
+
+function toggle_data_type() {
+  if (data_type === 'messages') {
+    data_type = 'chars'
+    console.log('switched to chars');
+
+    y.domain([0, d3.max(stacked_data, function(d) { return d.total_char; })]).nice();
+    y2.domain(y.domain());
+    d3.select('.axis--y')
+      .transition()
+      .duration(750)
+      .call(d3.axisLeft(y));
+
+    path = donut.selectAll('path')
+    .data(pie(cumul_data_pie_chars));   
+
+    path.transition()                                       
+      .duration(750)                                        
+      .attrTween('d', compute_tween_arc);
+
+    new_layer = stack_char(stacked_data);
+
+    var t;
+    focus.selectAll(".area")
+      .data((t = new_layer, new_layer = current_layer, current_layer = t))
+      .transition()
+      .duration(750)
+      .attr('d', area);
+
+    context.selectAll('.area')
+      .datum(stacked_data)
+      .transition()
+      .duration(750)
+      .attr('d', area2);
+
+    clear_buttons();
+  } else {
+    data_type = 'messages'
+
+    y.domain([0, d3.max(stacked_data, function(d) { return d.total_message; })]).nice();
+    y2.domain(y.domain());
+    d3.select('.axis--y')
+      .transition()
+      .duration(750)
+      .call(d3.axisLeft(y));
+
+    path = donut.selectAll('path')
+    .data(pie(cumul_data_pie_messages));   
+
+    path.transition()                                       
+      .duration(750)                                        
+      .attrTween('d', compute_tween_arc);
+
+    new_layer = stack_message(stacked_data);
+
+    var t;
+    focus.selectAll(".area")
+      .data((t = new_layer, new_layer = current_layer, current_layer = t))
+      .transition()
+      .duration(750)
+      .attr('d', area);
+
+    context.selectAll('.area')
+      .datum(stacked_data)
+      .transition()
+      .duration(750)
+      .attr('d', area2);
+
+    console.log('switched to messages');
+    clear_buttons();
+  }
+
+  function clear_buttons() {
+    buttons.selectAll('rect')
+        .each(function(d, i) { button.clear.call(this, d, i) });
+  }
+}

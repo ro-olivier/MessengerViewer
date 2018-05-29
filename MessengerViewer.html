@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-  <meta charset="utf-8">
   <head>
+  <meta charset="utf-8">
     <style>
 
       .area {
@@ -27,9 +27,31 @@
         fill: transparent !important;                                 
       }
 
+      .toggle_data_type_button text {
+        font-size: 12px;
+        fill: white;
+        pointer-events: none;
+        text-anchor: middle;
+        -moz-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        cursor: pointer;   
+      }
+
+      .toggle_data_type_button rect {
+        width: 100px;
+        height: 40px;
+        cursor: pointer;   
+      }
+
+      .toggle_data_type_button rect.pressed {
+        fill: #000f2b;
+      }
+
     </style>
 
     <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="d3.button.js"></script>
   </head>
   <body>
     <center>
