@@ -97,6 +97,7 @@ if __name__ == "__main__":
 	# Files used by D3Js scripts
 	stacked_messages_JSON = base_directory + r'\stacked_messages.json'
 	stacked_chars_JSON = base_directory + r'\stacked_chars.json'
+	stacked_JSON = base_directory + r'\stacked.json'
 
 	# Opening the file and loading the JSON
 	with open(filepath_json, 'r', encoding='utf-8') as f:
@@ -385,12 +386,14 @@ if __name__ == "__main__":
 
 	new_stacked_data_message = []
 	new_stacked_data_char = []
+	new_stacked_data = []
 
 	while current_timestamp < max_timestamp:
 		previous_timestamp = current_timestamp
 		current_timestamp = current_timestamp + one_week
 		stacked_data_message_per_week = {'timestamp':int(current_timestamp)}
 		stacked_data_char_per_week = {'timestamp':int(current_timestamp)}
+		stacked_data_per_week = {'timestamp':int(current_timestamp)}
 
 		i = 0
 		for person in real_participants:
@@ -411,11 +414,14 @@ if __name__ == "__main__":
 
 			stacked_data_message_per_week[person] = person_data['message_count']        
 			stacked_data_char_per_week[person] = person_data['char_count']
+			stacked_data_per_week[person] = {'messages' : person_data['message_count'] , 
+												'chars' : person_data['char_count'] }
 
 			i = i + 1
 
 		new_stacked_data_message.append(stacked_data_message_per_week)
 		new_stacked_data_char.append(stacked_data_char_per_week)
+		new_stacked_data.append(stacked_data_per_week)
 
 
 	# Exporting as JSON files.
@@ -435,6 +441,9 @@ if __name__ == "__main__":
 	    
 	with open(stacked_chars_JSON, 'w') as outfile:
 	    json.dump(new_stacked_data_char, outfile)
+
+	with open(stacked_JSON, 'w') as outfile:
+	    json.dump(new_stacked_data, outfile)
 
 	    
 	# Printing termination time
