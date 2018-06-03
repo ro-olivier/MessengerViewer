@@ -32,12 +32,13 @@ var tooltip_vertical_spacing = 20;
 var tooltip_element_vertical_offset_negative = +tooltip_element_vertical_offset - tooltip_vertical_spacing;
 var tooltip_element_vertical_offset_positive = +tooltip_element_vertical_offset + +tooltip_vertical_spacing;
 
-var button_height = 40;
+var button_height = 30;
 var button_width = 100;
+var button_padding = 5;
 var button_text_size = 12;
 var button_lateral_offset = 2*margin3.left + +(width / 2) - radius;
 var button_vertical_offset = legend_vertical_offset ;
-var second_button_vertical_offset = button_vertical_offset + button_height;
+var second_button_vertical_offset = button_vertical_offset + button_height + button_padding;
 
 var color = d3.scaleOrdinal(d3.schemeCategory20b);
 var keys;
@@ -89,7 +90,6 @@ var area2 = d3.area()
     .y0(height2)
     .y1(function(d, i) { 
       if (data_type === 'messages') {
-        console.log('key = ' + i + ' data : ' + JSON.stringify(d));
         return y2(d.total_message); 
       } else {
         return y2(d.total_char);
@@ -196,6 +196,10 @@ var buttons = svg.selectAll('.button')
     .attr('class', 'toggle_data_type_button')
     .call(button);
 
+buttons.selectAll('rect')
+    .attr('height', button_height)
+    .attr('width', button_width);
+
 var data_type;
 
 //d3.json('stacked_messages.json', function(error, data) {
@@ -203,7 +207,6 @@ d3.json('stacked.json', function(error, data) {
   if (error) throw error;
 
   data_type = 'messages';
-  console.log('init messages');
   d3.select('#d3-button0').select('rect').attr('class', 'pressed');
 
   initial_end = data.length;
@@ -355,6 +358,7 @@ d3.json('stacked.json', function(error, data) {
 function brushed() {
   if (d3.event.sourceEvent && d3.event.sourceEvent.type === "zoom") return; 
   // ignore brush-by-zoom
+  console.log('starting brushed method');
   var s = d3.event.selection || x2.range();
 
   x.domain(s.map(x2.invert, x2));
@@ -434,12 +438,13 @@ function brushed() {
 function zoomed() {
   if (d3.event.sourceEvent && d3.event.sourceEvent.type === "brush") return; 
   // ignore zoom-by-brush
+  console.log('starting zoomed method');
   var t = d3.event.transform;
   x.domain(t.rescaleX(x2).domain());
   focus.selectAll(".area").attr("d", area);
   focus.select(".axis--x").call(xAxis);
   context.select(".brush").call(brush.move, x.range().map(t.invertX, t));
-  console.log('zoomed');
+
   if (data_type === 'messages') {
     cumul_data_messages = {};
 
@@ -505,18 +510,15 @@ function zoomed() {
     .attrTween('d', compute_tween_arc);  
 
 
-    console.log('stacked_data = ' + JSON.stringify(stacked_data));
+
   if (data_type === 'messages') {
     y.domain([0, d3.max(stacked_data, function(d) { return d.total_message; })]).nice();
-    console.log('max message =' + d3.max(stacked_data, function(d) { return d.total_message; }));
     new_layer = stack_message(stacked_data);
   } else {
-    y.domain([0, d3.max(stacked_data, function(d) { return d.total_char; })]).nice();  
-    console.log('max chars = ' + d3.max(stacked_data, function(d) { return d.total_char; }));
+    y.domain([0, d3.max(stacked_data, function(d) { return d.total_char; })]).nice();
     new_layer = stack_char(stacked_data);
   }
-  console.log('current data-type = '+ data_type);
-  console.log(y.domain());
+
   y2.domain(y.domain());
   d3.select('.axis--y')
     .transition()
@@ -732,82 +734,82 @@ function toggle_all(){
   }
 
 function toggle_data_type() {
+
+  stacked_data.forEach(function(d, i){
+    d.total_char = 0;
+    d.total_message = 0;
+
+    if ((d.timestamp * 1000) >= x.domain()[0].getTime() && 
+        (d.timestamp * 1000) <= x.domain()[1].getTime()) {
+
+    if (Object.keys(cumul_data_chars).length == 0) {
+          keys.forEach(function(k){
+            d.total_char += d[k].chars;
+            d.total_message += d[k].messages;
+          });
+        } else {
+        //d.timestamp = d['timestamp'];
+          keys.forEach(function(k){
+            d.total_char += d[k].chars;
+            d.total_message += d[k].messages;
+          });
+      } 
+    }
+  });
+
   if (data_type === 'messages') {
     data_type = 'chars'
-    console.log('switched to chars');
+    console.log('switching to chars');
 
     y.domain([0, d3.max(stacked_data, function(d) { return d.total_char; })]).nice();
     y2.domain([0, d3.max(context_stacked_data, function(d) { return d.total_char; })]).nice();
     console.log('New y-axis domain: '+ y.domain());
-    d3.select('.axis--y')
-      .transition()
-      .duration(750)
-      .call(d3.axisLeft(y));
 
     path = donut.selectAll('path')
     .data(pie(cumul_data_pie_chars));   
 
-    path.transition()                                       
-      .duration(750)                                        
-      .attrTween('d', compute_tween_arc);
-
     new_layer = stack_char(stacked_data);
 
-    var t;
-    focus.selectAll(".area")
-      .data((t = new_layer, new_layer = current_layer, current_layer = t))
-      .transition()
-      .duration(750)
-      .attr('d', area);
-
-    context.selectAll('.area')
-      .datum(context_stacked_data)
-      .transition()
-      .duration(750)
-      .attr('d', area2);
-
-          console.log('stacked data :' + JSON.stringify(stacked_data));
     console.log('switched to chars');
     clear_buttons();
   } else {
     data_type = 'messages'
+    console.log('switching to messages');
 
     y.domain([0, d3.max(stacked_data, function(d) { return d.total_message; })]).nice();
     y2.domain([0, d3.max(context_stacked_data, function(d) { return d.total_message; })]).nice();
     console.log('New y-axis domain: '+ y.domain());
-    d3.select('.axis--y')
-      .transition()
-      .duration(750)
-      .call(d3.axisLeft(y));
 
     path = donut.selectAll('path')
     .data(pie(cumul_data_pie_messages));   
 
-    path.transition()                                       
-      .duration(750)                                        
-      .attrTween('d', compute_tween_arc);
-
     new_layer = stack_message(stacked_data);
-
-    var t;
-    focus.selectAll(".area")
-      .data((t = new_layer, new_layer = current_layer, current_layer = t))
-      .transition()
-      .duration(750)
-      .attr('d', area);
-
-      console.log('current context stacked data:' + JSON.stringify(context_stacked_data));
-    context.selectAll('.area')
-      .datum(context_stacked_data)
-      .transition()
-      .duration(750)
-      .attr('d', area2);
-
-    console.log('stacked data :' + JSON.stringify(stacked_data));
 
     console.log('switched to messages');
     clear_buttons();
   }
+
+  d3.select('.axis--y')
+    .transition()
+    .duration(750)
+    .call(d3.axisLeft(y));
+
+  path.transition()                                       
+    .duration(750)                                        
+    .attrTween('d', compute_tween_arc);
+
+  var t;
+  focus.selectAll(".area")
+    .data((t = new_layer, new_layer = current_layer, current_layer = t))
+    .transition()
+    .duration(750)
+    .attr('d', area);
+
+  context.selectAll('.area')
+    .datum(context_stacked_data)
+    .transition()
+    .duration(750)
+    .attr('d', area2);
 
   function clear_buttons() {
     buttons.selectAll('rect')
