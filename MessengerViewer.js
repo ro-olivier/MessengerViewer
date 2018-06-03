@@ -87,8 +87,9 @@ var area2 = d3.area()
     .curve(d3.curveMonotoneX)
     .x(function(d) { return x2(new Date(d.timestamp * 1000)); })
     .y0(height2)
-    .y1(function(d) { 
+    .y1(function(d, i) { 
       if (data_type === 'messages') {
+        console.log('key = ' + i + ' data : ' + JSON.stringify(d));
         return y2(d.total_message); 
       } else {
         return y2(d.total_char);
@@ -97,6 +98,9 @@ var area2 = d3.area()
 
 var current_layer;
 var new_layer;
+
+var stacked_data;
+var context_stacked_data = [];
 
 var pie = d3.pie()
   .value(function(d) { return d.count; })
@@ -248,9 +252,12 @@ d3.json('stacked.json', function(error, data) {
         cumul_data_messages[k] += +d[k].messages;
         cumul_data_chars[k] += +d[k].chars;
       });
-    } 
-  });
+    }
 
+    context_stacked_data[i] = {'timestamp': d.timestamp,
+                                'total_message': d.total_message, 
+                                'total_char': d.total_char };
+  });
 
   cumul_data_pie_messages_ = transform(cumul_data_messages, keys);
   cumul_data_pie_messages = applyEnabledParticipant(cumul_data_pie_messages_);
@@ -287,7 +294,7 @@ d3.json('stacked.json', function(error, data) {
       .call(yAxis);
 
   context.append("path")
-      .datum(stacked_data)
+      .datum(context_stacked_data)
       .attr("class", "area")
       .attr("d", area2);
 
@@ -502,9 +509,11 @@ function zoomed() {
   if (data_type === 'messages') {
     y.domain([0, d3.max(stacked_data, function(d) { return d.total_message; })]).nice();
     console.log('max message =' + d3.max(stacked_data, function(d) { return d.total_message; }));
+    new_layer = stack_message(stacked_data);
   } else {
     y.domain([0, d3.max(stacked_data, function(d) { return d.total_char; })]).nice();  
     console.log('max chars = ' + d3.max(stacked_data, function(d) { return d.total_char; }));
+    new_layer = stack_char(stacked_data);
   }
   console.log('current data-type = '+ data_type);
   console.log(y.domain());
@@ -513,6 +522,13 @@ function zoomed() {
     .transition()
     .duration(750)
     .call(d3.axisLeft(y));
+
+  var t;
+  focus.selectAll(".area")
+    .data((t = new_layer, new_layer = current_layer, current_layer = t))
+    .transition()
+    .duration(750)
+    .attr('d', area);
 }
 
 function transform(targetObj, keyArray) {
@@ -721,7 +737,8 @@ function toggle_data_type() {
     console.log('switched to chars');
 
     y.domain([0, d3.max(stacked_data, function(d) { return d.total_char; })]).nice();
-    y2.domain(y.domain());
+    y2.domain([0, d3.max(context_stacked_data, function(d) { return d.total_char; })]).nice();
+    console.log('New y-axis domain: '+ y.domain());
     d3.select('.axis--y')
       .transition()
       .duration(750)
@@ -744,17 +761,20 @@ function toggle_data_type() {
       .attr('d', area);
 
     context.selectAll('.area')
-      .datum(stacked_data)
+      .datum(context_stacked_data)
       .transition()
       .duration(750)
       .attr('d', area2);
 
+          console.log('stacked data :' + JSON.stringify(stacked_data));
+    console.log('switched to chars');
     clear_buttons();
   } else {
     data_type = 'messages'
 
     y.domain([0, d3.max(stacked_data, function(d) { return d.total_message; })]).nice();
-    y2.domain(y.domain());
+    y2.domain([0, d3.max(context_stacked_data, function(d) { return d.total_message; })]).nice();
+    console.log('New y-axis domain: '+ y.domain());
     d3.select('.axis--y')
       .transition()
       .duration(750)
@@ -776,11 +796,14 @@ function toggle_data_type() {
       .duration(750)
       .attr('d', area);
 
+      console.log('current context stacked data:' + JSON.stringify(context_stacked_data));
     context.selectAll('.area')
-      .datum(stacked_data)
+      .datum(context_stacked_data)
       .transition()
       .duration(750)
       .attr('d', area2);
+
+    console.log('stacked data :' + JSON.stringify(stacked_data));
 
     console.log('switched to messages');
     clear_buttons();
