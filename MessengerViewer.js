@@ -32,13 +32,6 @@ var tooltip_vertical_spacing = 20;
 var tooltip_element_vertical_offset_negative = +tooltip_element_vertical_offset - tooltip_vertical_spacing;
 var tooltip_element_vertical_offset_positive = +tooltip_element_vertical_offset + +tooltip_vertical_spacing;
 
-var button_height = 30;
-var button_width = 100;
-var button_padding = 5;
-var button_text_size = 12;
-var button_lateral_offset = 2*margin3.left + +(width / 2) - radius;
-var button_vertical_offset = legend_vertical_offset ;
-var second_button_vertical_offset = button_vertical_offset + button_height + button_padding;
 
 var color = d3.scaleOrdinal(d3.schemeCategory20b);
 var keys;
@@ -182,23 +175,86 @@ var percent = tooltip.append('text')
   .attr("transform", "translate(" + +tooltip_lateral_offset + "," + tooltip_element_vertical_offset_positive + ")");
 
 
-var button_data = [{label: "Messages view", x: button_lateral_offset, y: button_vertical_offset },
-        {label: "Characters view", x: button_lateral_offset, y: second_button_vertical_offset }];
+var data_type_toggle_text_size = 12;
+var data_type_toggle_lateral_offset = 2*margin3.left + +(width / 2) - radius;
+var data_type_toggle_vertical_offset = legend_vertical_offset;
+var data_type_toggle_text_vertical_offset = legend_vertical_offset + +(data_type_toggle_height / 2);
+var data_type_toggle_left_text_lateral_offset = data_type_toggle_lateral_offset - data_type_toggle_width;
+var data_type_toggle_right_text_lateral_offset = data_type_toggle_lateral_offset + +data_type_toggle_width;
 
-var button = d3.button()
-    .on('press', function(d,i) { toggle_data_type(); })
-    .on('release', function(d, i) { return; });
+var allButtons= svg.append("g")
+                    .attr("id","allButtons") 
+                    .attr('transform', 'translate(' + data_type_toggle_lateral_offset + ',' + data_type_toggle_vertical_offset + ')');
 
-var buttons = svg.selectAll('.button')
-    .data(button_data)
-    .enter()
-    .append('g')
-    .attr('class', 'toggle_data_type_button')
-    .call(button);
+var labels= [{text:'Messages', 'id':'messages'},{text:'Characters', 'id': 'chars'}];
 
-buttons.selectAll('rect')
-    .attr('height', button_height)
-    .attr('width', button_width);
+var buttonGroups= allButtons.selectAll("g.button")
+                        .data(labels)
+                        .enter()
+                        .append("g")
+                        .attr("class","button")
+                        .attr("id", function(d) { return d.id;} )
+                        .style("cursor","pointer")
+                        .on("click",function(d, i) {
+                            updateButtonColors(d3.select(this), d3.select(this.parentNode));
+                            if (data_type !== labels[i]) toggle_data_type();
+                        })
+                        .on("mouseover", function() {
+                            if (d3.select(this).select("rect").attr("fill") != pressedColor) {
+                                d3.select(this)
+                                    .select("rect")
+                                    .attr("fill",hoverColor);
+                            }
+                        })
+                        .on("mouseout", function() {
+                            if (d3.select(this).select("rect").attr("fill") != pressedColor) {
+                                d3.select(this)
+                                    .select("rect")
+                                    .attr("fill",defaultColor);
+                            }
+                        });
+
+var data_type_toggle_width= 70;
+var data_type_toggle_height= 25;
+var data_type_toggle_padding= 10;
+var x0= 0;
+var y0= 0;
+
+var defaultColor= "#7777BB"
+var hoverColor= "#0000ff"
+var pressedColor= "#000077"
+
+buttonGroups.append("rect")
+            .attr("class","buttonRect")
+            .attr("width",data_type_toggle_width)
+            .attr("height",data_type_toggle_height)
+            .attr("x",function(d,i) {
+                return x0+(data_type_toggle_width+data_type_toggle_padding)*i;
+            })
+            .attr("y",y0)
+            .attr("rx",5) 
+            .attr("ry",5)
+            .attr("fill",defaultColor)
+
+buttonGroups.append("text")
+            .attr("class","buttonText")
+            .attr("font-size","12px")
+            .attr("x",function(d,i) {
+                return x0 + (data_type_toggle_width+data_type_toggle_padding)*i + data_type_toggle_width/2;
+            })
+            .attr("y",y0+data_type_toggle_height/2)
+            .attr("text-anchor","middle")
+            .attr("dominant-baseline","central")
+            .attr("fill","white")
+            .text(function(d) {return d.text;})      
+
+  function updateButtonColors(button, parent) {
+    parent.selectAll("rect")
+            .attr("fill",defaultColor)
+
+    button.select("rect")
+            .attr("fill",pressedColor)
+}  
 
 var data_type;
 
@@ -207,7 +263,7 @@ d3.json('stacked.json', function(error, data) {
   if (error) throw error;
 
   data_type = 'messages';
-  d3.select('#d3-button0').select('rect').attr('class', 'pressed');
+  updateButtonColors(allButtons.select('#messages'), allButtons);
 
   initial_end = data.length;
 
@@ -771,7 +827,6 @@ function toggle_data_type() {
     new_layer = stack_char(stacked_data);
 
     console.log('switched to chars');
-    clear_buttons();
   } else {
     data_type = 'messages'
     console.log('switching to messages');
@@ -786,7 +841,6 @@ function toggle_data_type() {
     new_layer = stack_message(stacked_data);
 
     console.log('switched to messages');
-    clear_buttons();
   }
 
   d3.select('.axis--y')
@@ -811,8 +865,4 @@ function toggle_data_type() {
     .duration(750)
     .attr('d', area2);
 
-  function clear_buttons() {
-    buttons.selectAll('rect')
-        .each(function(d, i) { button.clear.call(this, d, i) });
-  }
 }
