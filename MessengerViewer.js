@@ -19,8 +19,6 @@ http://nikhil-nathwani.com/blog/posts/radio/radio.html
 */
 
 /* TODO :
- - sorting the segment by value might be a good idea for the donut chart, as it
- may be easier to read that way
  - it could be nice to have a preselect feature on the brush size: using a button the user
  could select a time range of a week, month, year. Obviously a custom range would still be possible.
 */ 
@@ -155,7 +153,9 @@ var pie = d3.pie()
     if (d.name === name) d.enabled = enabled;
     return (d.enabled) ? d.count : 0;
     })
-  .sort(null);
+  .sortValues(function (a, b) {
+    return a - b;
+  });
 
 var arc = d3.arc()
   .innerRadius(radius - donutWidth)
