@@ -71,6 +71,10 @@ var data_type_toggle_text_vertical_offset = legend_vertical_offset + +(data_type
 var data_type_toggle_left_text_lateral_offset = data_type_toggle_lateral_offset - data_type_toggle_width;
 var data_type_toggle_right_text_lateral_offset = data_type_toggle_lateral_offset + +data_type_toggle_width;
 
+var dates_display_lateral_offset = data_type_toggle_lateral_offset;
+var dates_display_vertical_offset = data_type_toggle_vertical_offset + 3*legendRectSize;
+var dates_display_vertical_spacing = tooltip_vertical_spacing;
+
 /* Defining variable used in the script logic */
 
 var color = d3.scaleOrdinal(d3.schemeCategory20b); // we'll use D3Js standard colors for the viz
@@ -240,14 +244,14 @@ var percent = tooltip.append('text')
   .attr('transform', 'translate(' + tooltip_lateral_offset + ',' + tooltip_element_vertical_offset_positive + ')');
 
 // The buttons used to toggle between message and characters views
-var allButtons= svg.append('g')
-  .attr('id', 'allButtons')
+var toggle_buttons = svg.append('g')
+  .attr('id', 'toggle_buttons')
   .attr('transform', 'translate(' + data_type_toggle_lateral_offset + ',' + data_type_toggle_vertical_offset + ')');
 
-var button_data= [{text:'Messages', 'id':'messages'}, {text:'Characters', 'id': 'chars'}];
+var toggle_button_data = [{text:'Messages', 'id':'messages'}, {text:'Characters', 'id': 'chars'}];
 
-var buttonGroups= allButtons.selectAll('g.button')
-  .data(button_data)
+var toggle_button_groups = toggle_buttons.selectAll('g.button')
+  .data(toggle_button_data)
   .enter()
   .append('g')
   .attr('class', 'button')
@@ -255,7 +259,7 @@ var buttonGroups= allButtons.selectAll('g.button')
   .style('cursor', 'pointer')
   .on('click', function(d, i) {
       update_button_colors(d3.select(this), d3.select(this.parentNode));
-      if (data_type !== button_data[i].id) toggle_data_type();
+      if (data_type !== toggle_button_data[i].id) toggle_data_type();
   })
   .on('mouseover', function() {
       if (d3.select(this).select('rect').attr('fill') != pressedColor) {
@@ -272,7 +276,7 @@ var buttonGroups= allButtons.selectAll('g.button')
       }
   });
 
-buttonGroups.append('rect')
+toggle_button_groups.append('rect')
   .attr('class', 'buttonRect')
   .attr('width', data_type_toggle_width)
   .attr('height', data_type_toggle_height)
@@ -283,7 +287,7 @@ buttonGroups.append('rect')
   .attr('ry', 5)
   .attr('fill', defaultColor);
 
-buttonGroups.append('text')
+toggle_button_groups.append('text')
   .attr('class', 'buttonText')
   .attr('font-size', '12px')
   .attr('x', function(d, i) {
@@ -295,13 +299,29 @@ buttonGroups.append('text')
   .attr('fill', 'white')
   .text(function(d) {return d.text; });
 
+// Here is the text displaying the dates of the current selection
+var dates_display = svg.append('g')
+  .attr('id', 'dates_display')
+  .attr('transform', 'translate(' + dates_display_lateral_offset + ',' + dates_display_vertical_offset + ')');
+
+var dates_display_data = [{'id':'date_start_display'}, {'id': 'date_end_display'}];
+
+var dates_display_groups = dates_display.selectAll('text')
+  .data(dates_display_data)
+  .enter()
+  .append('text')
+  .attr('class', 'dates_display')
+  .attr('id', function(d) { return d.id; })
+  .attr('dy', function (d, i) { return i*dates_display_vertical_spacing; })
+  .attr('font-size', '12px');
+
 // Here starts the real stuff...
 d3.json('stacked.json', function(error, data) {
   if (error) throw error;
 
   // Init is done on messages
   data_type = 'messages';
-  update_button_colors(allButtons.select('#messages'), allButtons);
+  update_button_colors(toggle_buttons.select('#messages'), toggle_buttons);
 
   keys = Object.keys(data[0]);
   keys.splice(keys.indexOf('timestamp'), 1);
@@ -323,6 +343,8 @@ d3.json('stacked.json', function(error, data) {
   
   min_timestamp = d3.min(stacked_data.map(function(d) { return d.timestamp; }));
   max_timestamp = d3.max(stacked_data.map(function(d) { return d.timestamp; }));
+
+  update_date_display(min_timestamp, max_timestamp);
 
   x.domain([new Date(min_timestamp * 1000), new Date(max_timestamp * 1000)]);
   x2.domain(x.domain());
@@ -817,7 +839,7 @@ function transform(targetObj, keyArray) {
     if (!targetObj || !keyArray) { return resultArray; }
     
     for (let i = 0; i < keyArray.length; i++) {
-        if (!targetObj.hasOwnProperty(keyArray[i])) { continue; }     
+        if (!targetObj.hasOwnProperty(keyArray[i])) { continue; }
         let item = {};
         item['name'] = keyArray[i]; 
         item['count'] = targetObj[keyArray[i]];
@@ -847,7 +869,25 @@ function apply_enabled_participant(ar) {
 function compute_tween_arc(d) {
   var interpolate = d3.interpolate(this._current, d);
   this._current = interpolate(0);
-  return function(t) {                                
+  return function(t) {
     return arc(interpolate(t));
   };
+}
+
+function update_date_display(start_ts, end_ts) {
+  console.log(time_formatter(start_ts) + ' /// ' + time_formatter(end_ts));
+  d3.select('#date_start_display').text('Start of selection: ' + time_formatter(start_ts));
+  d3.select('#date_end_display').text('End of selection: ' + time_formatter(end_ts));
+}
+
+function time_formatter(ts) {
+  var a = new Date(ts * 1000);
+
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var year = a.getFullYear();
+  var month = months[a.getMonth()];
+  var date = a.getDate();
+
+  var time = date + ' ' + month + ' ' + year;
+  return time;
 }
