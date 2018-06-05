@@ -509,6 +509,9 @@ function brushed() {
       }
     });
 
+    min_timestamp = d3.min(stacked_data.map(function(d) { if (d.total_message > 0) return d.timestamp; }));
+    max_timestamp = d3.max(stacked_data.map(function(d) { if (d.total_message > 0) return d.timestamp; }));
+
     var cumul_data_pie_messages_ = transform(cumul_data_messages, keys);
     cumul_data_pie_messages = apply_enabled_participant(cumul_data_pie_messages_);
 
@@ -538,11 +541,17 @@ function brushed() {
       }
     });
 
+    min_timestamp = d3.min(stacked_data.map(function(d) { if (d.total_char > 0) return d.timestamp; }));
+    max_timestamp = d3.max(stacked_data.map(function(d) { if (d.total_char > 0) return d.timestamp; }));
+
     var cumul_data_pie_chars_ = transform(cumul_data_chars, keys);
     cumul_data_pie_chars = apply_enabled_participant(cumul_data_pie_chars_);
 
     path = donut.selectAll('path').data(pie(cumul_data_pie_chars));
   } 
+
+  // Updating the date display
+  update_date_display(min_timestamp, max_timestamp);
 
   // Updating the donut chart 
   path.transition()
@@ -584,6 +593,9 @@ function zoomed() {
       }
     });
 
+    min_timestamp = d3.min(stacked_data.map(function(d) { if (d.total_message > 0) return d.timestamp; }));
+    max_timestamp = d3.max(stacked_data.map(function(d) { if (d.total_message > 0) return d.timestamp; }));
+
     var cumul_data_pie_messages_ = transform(cumul_data_messages, keys);
     cumul_data_pie_messages = apply_enabled_participant(cumul_data_pie_messages_);
 
@@ -613,6 +625,9 @@ function zoomed() {
       }
     });
 
+    min_timestamp = d3.min(stacked_data.map(function(d) { if (d.total_char > 0) return d.timestamp; }));
+    max_timestamp = d3.max(stacked_data.map(function(d) { if (d.total_char > 0) return d.timestamp; }));
+
     var cumul_data_pie_chars_ = transform(cumul_data_chars, keys);
     cumul_data_pie_chars = apply_enabled_participant(cumul_data_pie_chars_);
 
@@ -641,6 +656,9 @@ function zoomed() {
     .call(d3.axisLeft(y));
 
   update_donut_and_chart();
+
+  // Updating the date display
+  update_date_display(min_timestamp, max_timestamp);
 }
 
 function show_pie_tooltip(d) {
