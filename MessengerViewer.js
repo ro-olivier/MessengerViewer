@@ -18,10 +18,9 @@ For the toggle buttons:
 http://nikhil-nathwani.com/blog/posts/radio/radio.html
 */
 
-/* TODO :
- - it could be nice to have a preselect feature on the brush size: using a button the user
- could select a time range of a week, month, year. Obviously a custom range would still be possible.
-*/ 
+/* TODO
+ - The user is able to set the end date before the start date, which results in NaN being taken as time range values.
+*/
 
 /* Defining SVG variables and parameters */
 
@@ -83,7 +82,11 @@ var keys; // will holds the keys of the data array, i.e. the names of the partic
 var min_timestamp; // will hold the minimum timestamp found in the selection (zoom)
 var max_timestamp; // will hold the maximum timestamp found in the selection (zoom)
 
-var initial_end = 0; // initial index that will be used to slide the data if needed
+var permanent_max_timestamp; // will hold the maximum date found in the dataset
+var permanent_min_timestamp; // will hold the minimum date found in the dataset
+
+var initial_min_index = 0; // will hold the index, in the data array, of the first week to be displayed
+var initial_max_index;
 
 var currentTotalEnabled; // will hold the current number of enabled participants (must be > 2)
 var enabledParticipants = {}; // will hold a dict with the state (enabled or not) of each participant
@@ -153,10 +156,7 @@ var area2 = d3.area()
   });
 
 var pie = d3.pie()
-  .value(function(d)  {                                 
-    if (d.name === name) d.enabled = enabled;
-    return (d.enabled) ? d.count : 0;
-    })
+  .value(function(d) { return (d.enabled) ? d.count : 0; })
   .sortValues(function (a, b) {
     return a - b;
   });
@@ -313,7 +313,9 @@ var dates_display_groups = dates_display.selectAll('text')
   .attr('class', 'dates_display')
   .attr('id', function(d) { return d.id; })
   .attr('dy', function (d, i) { return i*dates_display_vertical_spacing; })
-  .attr('font-size', '12px');
+  .attr('font-size', '12px')
+  .style('cursor', 'pointer')
+  .on('click', get_date_from_user);
 
 // Here starts the real stuff...
 d3.json('stacked.json', function(error, data) {
@@ -338,11 +340,14 @@ d3.json('stacked.json', function(error, data) {
   currentTotalEnabled = keys.length;
 
   // Init is done with all the data
-  initial_end = data.length;
-  stacked_data = data.slice(0, initial_end);
+  initial_max_index = data.length;
+  stacked_data = data.slice(initial_min_index, initial_max_index);
   
   min_timestamp = d3.min(stacked_data.map(function(d) { return d.timestamp; }));
   max_timestamp = d3.max(stacked_data.map(function(d) { return d.timestamp; }));
+
+  permanent_min_timestamp = min_timestamp;
+  permanent_max_timestamp = max_timestamp;
 
   update_date_display(min_timestamp, max_timestamp);
 
@@ -475,13 +480,18 @@ function brushed() {
 
   // Updating the time domain with the selected range
   var s = d3.event.selection || x2.range();
-  x.domain(s.map(x2.invert, x2));
+
+  do_brushed(s[0], s[1], s.map(x2.invert, x2));
+}
+
+function do_brushed(v0, v1, range) {
+  x.domain(range);
 
   // Updating the main chart
   focus.select('.axis--x').call(xAxis);
   svg.select('.zoom').call(zoom.transform, d3.zoomIdentity
-      .scale(width / (s[1] - s[0]))
-      .translate(-s[0], 0));
+      .scale(width / (v1 - v0))
+      .translate(-v0, 0));
 
   // Depending on the current data type, we compute the new data to display in the donut chat
   if (data_type === 'messages') {
@@ -491,8 +501,8 @@ function brushed() {
       d.total_message = 0;
 
       // Additional condition (compared to similar code in init) to keep data only from selected range
-      if ((d.timestamp * 1000) >= s.map(x2.invert, x2)[0].getTime() && 
-        (d.timestamp * 1000) <= s.map(x2.invert, x2)[1].getTime()) {
+      if ((d.timestamp * 1000) >= range[0].getTime() && 
+        (d.timestamp * 1000) <= range[1].getTime()) {
 
       if (Object.keys(cumul_data_messages).length == 0) {
             keys.forEach(function(k){
@@ -523,8 +533,8 @@ function brushed() {
       d.total_char = 0;
 
       // Additional condition (compared to similar code in init) to keep data only from selected range
-      if ((d.timestamp * 1000) >= s.map(x2.invert, x2)[0].getTime() && 
-        (d.timestamp * 1000) <= s.map(x2.invert, x2)[1].getTime()) {
+      if ((d.timestamp * 1000) >= range[0].getTime() && 
+        (d.timestamp * 1000) <= range[1].getTime()) {
 
       if (Object.keys(cumul_data_chars).length == 0) {
             keys.forEach(function(k){
@@ -563,9 +573,14 @@ function zoomed() {
   if (d3.event.sourceEvent && d3.event.sourceEvent.type === 'brush') return;
   // ignore zoom-by-brush
 
+  // We don't want to do this if the zoom was triggered by a manual change date by the user,
+  // because in this case the d3.event.transform object doesn't exist. Apparently, this only
+  // happens when d3.event.sourceEvent.type = 'click'!
+  if (d3.event.sourceEvent.type !== 'click') {
   // Updating the time domain with the selected range
-  var t = d3.event.transform;
-  x.domain(t.rescaleX(x2).domain());
+    var t = d3.event.transform;
+    x.domain(t.rescaleX(x2).domain());
+  }
 
   // Depending on the current data type, we compute the new data to display in the donut chat
   if (data_type === 'messages') {
@@ -593,9 +608,6 @@ function zoomed() {
       }
     });
 
-    min_timestamp = d3.min(stacked_data.map(function(d) { if (d.total_message > 0) return d.timestamp; }));
-    max_timestamp = d3.max(stacked_data.map(function(d) { if (d.total_message > 0) return d.timestamp; }));
-
     var cumul_data_pie_messages_ = transform(cumul_data_messages, keys);
     cumul_data_pie_messages = apply_enabled_participant(cumul_data_pie_messages_);
 
@@ -605,6 +617,7 @@ function zoomed() {
 
     stacked_data.forEach(function(d, i){
       d.total_char = 0;
+      d.timestamp = d.timestamp;
 
       // Additional condition (compared to similar code in init) to keep data only from selected range
       if ((d.timestamp * 1000) >= x.domain()[0].getTime() && 
@@ -625,27 +638,35 @@ function zoomed() {
       }
     });
 
-    min_timestamp = d3.min(stacked_data.map(function(d) { if (d.total_char > 0) return d.timestamp; }));
-    max_timestamp = d3.max(stacked_data.map(function(d) { if (d.total_char > 0) return d.timestamp; }));
-
     var cumul_data_pie_chars_ = transform(cumul_data_chars, keys);
     cumul_data_pie_chars = apply_enabled_participant(cumul_data_pie_chars_);
 
     path = donut.selectAll('path').data(pie(cumul_data_pie_chars));
   }
 
-  // Updating the main chart x-axis (time axis)
-  focus.select('.axis--x').call(xAxis);
-  // Updating the display of the brush (blue zoom rectangle)
-  context.select('.brush').call(brush.move, x.range().map(t.invertX, t));
-
   // We are recomputing the data to display in the main chart area depending on the data type
   if (data_type === 'messages') {
     y.domain([0, d3.max(stacked_data, function(d) { return d.total_message; })]).nice();
+    min_timestamp = d3.min(stacked_data.map(function(d) { if (d.total_message > 0) return d.timestamp; }));
+    max_timestamp = d3.max(stacked_data.map(function(d) { if (d.total_message > 0) return d.timestamp; }));
     new_layer = stack_message(stacked_data);
   } else {
     y.domain([0, d3.max(stacked_data, function(d) { return d.total_char; })]).nice();
+    min_timestamp = d3.min(stacked_data.map(function(d) { if (d.total_char > 0) return d.timestamp; }));
+    max_timestamp = d3.max(stacked_data.map(function(d) { if (d.total_char > 0) return d.timestamp; }));
     new_layer = stack_char(stacked_data);
+  }
+
+  // Updating the main chart x-axis (time axis)
+  focus.select('.axis--x').call(xAxis);
+
+  // Updating the display of the brush (blue zoom rectangle)
+  // Depending on the type of event which triggered the zoom, we apply the real transformation,
+  // or a good enough approximation using the x2 domain which, thankfully, never changes.
+  if (d3.event.sourceEvent.type !== 'click') {
+    context.select('.brush').call(brush.move, x.range().map(t.invertX, t));
+  } else {
+    context.select('.brush').call(brush.move, [x2(new Date(min_timestamp * 1000)), x2(new Date(max_timestamp * 1000))]);
   }
 
   // Updating the y domain of the charts
@@ -656,6 +677,9 @@ function zoomed() {
     .call(d3.axisLeft(y));
 
   update_donut_and_chart();
+
+    console.log('zoomed new min_timestamp ' + min_timestamp);
+    console.log('zoomed new max_timestamp ' + max_timestamp);
 
   // Updating the date display
   update_date_display(min_timestamp, max_timestamp);
@@ -698,16 +722,16 @@ function toggle_participant(name) {
   // Applying the new style to the rect (filled or not)
   // and keeping track on how many participants have been deactivated
   // to ensure that there will always be at least two activated participants.
-  if (rect.attr('class') === 'disabled') {                
+  if (rect.attr('class') === 'disabled') {
     rect.attr('class', '');
     currentTotalEnabled++;
-  } else {                                                
-    if (currentTotalEnabled > 2) {                         
+  } else {
+    if (currentTotalEnabled > 2) {
       rect.attr('class', 'disabled');
       d3.select('#activateAllRect').attr('class', 'disabled');
       enabled = false;
       currentTotalEnabled--;
-    }                                    
+    }
   }
 
   // Applying the style to the activeAll button 
@@ -748,6 +772,8 @@ function reactivate_all() {
   keys.forEach(function(k) {
     enabledParticipants[k] = enabled;
   });
+
+  currentTotalEnabled = keys.length;
 
   if (data_type === 'messages') {
     apply_enabled_participant(cumul_data_pie_messages);
@@ -794,6 +820,7 @@ function toggle_data_type() {
     y.domain([0, d3.max(stacked_data, function(d) { return d.total_char; })]).nice();
     y2.domain([0, d3.max(context_stacked_data, function(d) { return d.total_char; })]).nice();
 
+    apply_enabled_participant(cumul_data_pie_chars);
     path = donut.selectAll('path').data(pie(cumul_data_pie_chars));
     new_layer = stack_char(stacked_data);
   } else {
@@ -802,6 +829,7 @@ function toggle_data_type() {
     y.domain([0, d3.max(stacked_data, function(d) { return d.total_message; })]).nice();
     y2.domain([0, d3.max(context_stacked_data, function(d) { return d.total_message; })]).nice();
 
+    apply_enabled_participant(cumul_data_pie_messages);
     path = donut.selectAll('path').data(pie(cumul_data_pie_messages));
     new_layer = stack_message(stacked_data);
   }
@@ -893,7 +921,7 @@ function compute_tween_arc(d) {
 }
 
 function update_date_display(start_ts, end_ts) {
-  console.log(time_formatter(start_ts) + ' /// ' + time_formatter(end_ts));
+  console.log('Received order to update date displays with : ' + time_formatter(start_ts) + ' /// ' + time_formatter(end_ts));
   d3.select('#date_start_display').text('Start of selection: ' + time_formatter(start_ts));
   d3.select('#date_end_display').text('End of selection: ' + time_formatter(end_ts));
 }
@@ -908,4 +936,61 @@ function time_formatter(ts) {
 
   var time = date + ' ' + month + ' ' + year;
   return time;
+}
+
+function get_date_from_user(d, i, nodes) {
+
+  var id = this.__data__.id;
+  var date;
+
+  if (id === dates_display_data[0].id) {
+    date = window.prompt('Please specify a start date (YYYY/MM/DD or DD/MM/YYYY).' + 
+      '\nThe data is computed per week.' +
+      '\nThe week closest to your input will be taken as the new start date.');
+  } else {
+    date = window.prompt('Please specify an end date (YYYY/MM/DD or DD/MM/YYYY).' + 
+      '\nThe data is computed per week.' + 
+      '\nThe week closest to your input will be taken as the new end date.');
+  }
+
+  console.log('received : ' + date);
+
+  if (is_valid_date(date)) {
+    console.log('valid date : ' + Date.parse(date) / 1000);
+    if (id === dates_display_data[0].id) {
+      min_timestamp = find_closest_ts(Date.parse(date) / 1000);
+      console.log('Found closest for min : ' + min_timestamp);
+      console.log(new Date(min_timestamp * 1000));
+    } else {
+      max_timestamp = find_closest_ts(Date.parse(date) / 1000);
+      console.log('Found closest for max : ' + max_timestamp);
+      console.log(new Date(max_timestamp * 1000));
+    }
+  }
+
+  update_date_display(min_timestamp, max_timestamp);
+  do_brushed(x(min_timestamp), x(max_timestamp), [new Date(min_timestamp * 1000), new Date(max_timestamp * 1000)]);
+
+}
+
+function is_valid_date(date) {
+  var submitted_date = Date.parse(date);
+  if (isNaN(submitted_date)) return false;
+  console.log('passed parsing');
+  if (submitted_date < new Date(permanent_min_timestamp * 1000)) return false;
+  console.log('passed min');
+  if (submitted_date > new Date(permanent_max_timestamp * 1000)) return false;
+  console.log('passed max');
+  return true;
+}
+
+function find_closest_ts(ts){
+    var arr = stacked_data.map(function(d) { return d.timestamp; });
+    var closest = Math.max.apply(null, arr);
+
+    for(var i = 0; i < arr.length; i++) {
+        if(arr[i] >= ts && arr[i] < closest) closest = arr[i];
+    }
+
+    return closest;
 }
