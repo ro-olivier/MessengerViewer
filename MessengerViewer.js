@@ -25,16 +25,16 @@ http://nikhil-nathwani.com/blog/posts/radio/radio.html
 /* Defining SVG variables and parameters */
 
 var svg = d3.select('svg'),
-    margin = {top: 20, right: 20, bottom: 390, left: 60},
-    margin2 = {top: 430, right: 20, bottom: 300, left: 60},
-    margin3 = {top: 640, right: 20, bottom: 20, left: 60},
+    margin = {top: 20, right: 20, bottom: 300, left: 60},
+    margin2 = {top: 395, right: 20, bottom: 210, left: 60},
+    margin3 = {top: 595, right: 20, bottom: 0, left: 60},
     width = +svg.attr('width') - margin.left - margin.right,
     height = +svg.attr('height') - margin.top - margin.bottom,
     height2 = +svg.attr('height') - margin2.top - margin2.bottom,
     height3 = +svg.attr('height') - margin3.top - margin3.bottom;
 
-var radius = 100;
-var donutWidth = 45;
+var radius = 80;
+var donutWidth = 50;
 
 var legendRectSize = 18;
 var legendVerticalSpacing = 4;
@@ -44,6 +44,7 @@ var legendMaxItemOnColumn = 6;
 var legend_vertical_offset = +margin3.top - +radius ;
 
 var donut_lateral_offset = +margin3.left + +(3 * width / 4)
+var donut_vertical_offset = margin3.top - legendRectSize;
 var tooltip_lateral_offset = 2*margin3.left + +(3 * width / 4) + radius;
 var tooltip_vertical_offset = +margin3.top - radius / 2;
 
@@ -71,8 +72,13 @@ var data_type_toggle_left_text_lateral_offset = data_type_toggle_lateral_offset 
 var data_type_toggle_right_text_lateral_offset = data_type_toggle_lateral_offset + +data_type_toggle_width;
 
 var dates_display_lateral_offset = data_type_toggle_lateral_offset;
-var dates_display_vertical_offset = data_type_toggle_vertical_offset + 3*legendRectSize;
-var dates_display_vertical_spacing = tooltip_vertical_spacing;
+var dates_display_vertical_offset = data_type_toggle_vertical_offset + 3.5*legendRectSize;
+var dates_display_vertical_spacing = tooltip_vertical_spacing*1.1;
+
+var reset_date_lateral_offset = data_type_toggle_lateral_offset;
+var reset_date_vertical_offset = dates_display_vertical_offset + 3*legendRectSize;
+var reset_date_width = data_type_toggle_width*2 + data_type_toggle_padding;
+var reset_date_color = '#843C39';
 
 /* Defining variable used in the script logic */
 
@@ -187,7 +193,7 @@ var context = svg.append('g')
 // The donut chart
 var donut = svg.append('g')
   .attr('class', 'donut')
-  .attr('transform', 'translate(' + donut_lateral_offset + ',' + margin3.top + ')');
+  .attr('transform', 'translate(' + donut_lateral_offset + ',' + donut_vertical_offset + ')');
 
 // The legend on the left-hand side, to let the user enable or disable participants
 var legend = svg.append('g')
@@ -197,7 +203,7 @@ var legend = svg.append('g')
 var legends; // Will hold individual legend item, initiated once the file has been read
 
 // The additional legend button to reactivate all participants at once
-var activateAll_vertical_offset = (1.05) * (+legend_vertical_offset + legendMaxItemOnColumn*(legendRectSize + legendVerticalSpacing));
+var activateAll_vertical_offset = +legend_vertical_offset + (legendMaxItemOnColumn+1)*(legendRectSize + legendVerticalSpacing);
 var activateAll = svg.append('g')
   .attr('class', 'activateAll')
   .attr('transform', 'translate(' + margin3.left + ',' + activateAll_vertical_offset + ')');
@@ -316,6 +322,32 @@ var dates_display_groups = dates_display.selectAll('text')
   .attr('font-size', '12px')
   .style('cursor', 'pointer')
   .on('click', get_date_from_user);
+
+// Here is the "reset" date button
+var reset_date_button = svg.append('g')
+  .attr('id', 'reset_date_button')
+  .attr('transform', 'translate(' + reset_date_lateral_offset + ',' + reset_date_vertical_offset + ')')
+  .attr('class', 'button')
+  .style('cursor', 'pointer')
+  .on('click', reset_date);
+
+reset_date_button.append('rect')
+  .attr('class', 'buttonRect')
+  .attr('width', reset_date_width)
+  .attr('height', data_type_toggle_height)
+  .attr('rx', 5) 
+  .attr('ry', 5)
+  .attr('fill', reset_date_color);
+
+reset_date_button.append('text')
+.attr('class', 'buttonText')
+.attr('font-size', '12px')
+.attr('x', reset_date_width/2)
+.attr('y', data_type_toggle_height/2)
+.attr('text-anchor', 'middle')
+.attr('dominant-baseline', 'central')
+.attr('fill', 'white')
+.text('Reset dates selection');
 
 // Here starts the real stuff...
 d3.json('stacked.json', function(error, data) {
@@ -1014,4 +1046,9 @@ function parse_date(str) {
     return new Date(dateParts[0], (dateParts[1] - 1), dateParts[2]);
   }
   return undefined;
+}
+
+function reset_date() {
+  update_date_display(permanent_min_timestamp, permanent_max_timestamp);
+  do_brushed(x(permanent_min_timestamp), x(permanent_max_timestamp), [new Date(permanent_min_timestamp * 1000), new Date(permanent_max_timestamp * 1000)]);
 }
