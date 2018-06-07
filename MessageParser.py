@@ -52,7 +52,7 @@ special_content = {'rename_group':'a nommé le groupe',
  'rsvp':'a répondu',
  'defined_pseudo':'a défini son propre pseudo',
  'changed_emoji':'a défini l’emoji sur',
- 'participant_left':'a quitté le groupe'}
+ 'participant_left':'a quitté le groupe' }
 
 special_content_first_person = {'rename_group':'Vous avez nommé le groupe',
  'challenge':'Vous avez défié',
@@ -63,8 +63,7 @@ special_content_first_person = {'rename_group':'Vous avez nommé le groupe',
  'score':'Vous avez marqué',
  'personal_record':'Vous avez battu votre record personnel de',
  'leaderboard':'Vous avez gagné des places dans le leaderboard',
- 'changed_emoji':'Vous avez défini l’emoji sur'
- }
+ 'changed_emoji':'Vous avez défini l’emoji sur' }
 
 games = ['Jelly Crush.', 
          'in EverWing', 
@@ -76,7 +75,7 @@ games = ['Jelly Crush.',
          'Word Streak With Friends.']
 	
 if __name__ == "__main__":
-	base_directory = input('Please specify the working directory (if empty, current directory will be used).\n')
+	base_directory = input('Please specify the working directory where the \'message.json\' file can be found (if empty, current directory will be used).\n')
 	if len(base_directory) == 0:
 		base_directory = os.getcwd()
 		
@@ -86,17 +85,16 @@ if __name__ == "__main__":
 	# Some filenames (input and output)
 	filepath_json = base_directory + r'\message.json'
 
+
 	# Old filenames (kept because it might be useful later)
-	cleaned_messages_json = base_directory + r'\cleaned_messages.json'
-	cleaned_participants_json = base_directory + r'\cleaned_participants.json'
-	cleaned_conversation_name_json = base_directory + r'\cleaned_conv_name.json'
-	cleaned_conversation_emoji_json = base_directory + r'\cleaned_conv_emoji.json'
-	cleaned_conversation_colour_json = base_directory + r'\cleaned_conv_colour.json'
-	cleaned_messages_hidden_json = base_directory + r'\hidden_messages.json'
+	#cleaned_messages_json = base_directory + r'\cleaned_messages.json'
+	#cleaned_participants_json = base_directory + r'\cleaned_participants.json'
+	#cleaned_conversation_name_json = base_directory + r'\cleaned_conv_name.json'
+	#cleaned_conversation_emoji_json = base_directory + r'\cleaned_conv_emoji.json'
+	#cleaned_conversation_colour_json = base_directory + r'\cleaned_conv_colour.json'
+	#cleaned_messages_hidden_json = base_directory + r'\hidden_messages.json'
 	
-	# Files used by D3Js scripts
-	stacked_messages_JSON = base_directory + r'\stacked_messages.json'
-	stacked_chars_JSON = base_directory + r'\stacked_chars.json'
+	# Export file, to be used by the D3JS script 
 	stacked_JSON = base_directory + r'\stacked.json'
 
 	# Opening the file and loading the JSON
@@ -138,7 +136,7 @@ if __name__ == "__main__":
 				#print('{0} - {1}'.format(i, people.encode('utf-8')))
 				print('{0} - {1}'.format(i, people))
 				i = i + 1
-			single_person_index = input('Please input the number corresponding to you.\n')
+			single_person_index = input('Please input the number corresponding to your name.\n')
 			first_person = pd.sender_name.unique()[single_person_index]
 		except:
 			continue
@@ -391,8 +389,8 @@ if __name__ == "__main__":
 	while current_timestamp < max_timestamp:
 		previous_timestamp = current_timestamp
 		current_timestamp = current_timestamp + one_week
-		stacked_data_message_per_week = {'timestamp':int(current_timestamp)}
-		stacked_data_char_per_week = {'timestamp':int(current_timestamp)}
+		#stacked_data_message_per_week = {'timestamp':int(current_timestamp)}
+		#stacked_data_char_per_week = {'timestamp':int(current_timestamp)}
 		stacked_data_per_week = {'timestamp':int(current_timestamp)}
 
 		i = 0
@@ -412,35 +410,35 @@ if __name__ == "__main__":
                    (df['sender_name'] == person) & 
                    (df['type'] == 'Generic')])
 
-			stacked_data_message_per_week[person] = person_data['message_count']        
-			stacked_data_char_per_week[person] = person_data['char_count']
+			#stacked_data_message_per_week[person] = person_data['message_count']        
+			#stacked_data_char_per_week[person] = person_data['char_count']
 			stacked_data_per_week[person] = {'messages' : person_data['message_count'] , 
 												'chars' : person_data['char_count'] }
 
 			i = i + 1
 
-		new_stacked_data_message.append(stacked_data_message_per_week)
-		new_stacked_data_char.append(stacked_data_char_per_week)
+		#new_stacked_data_message.append(stacked_data_message_per_week)
+		#new_stacked_data_char.append(stacked_data_char_per_week)
 		new_stacked_data.append(stacked_data_per_week)
 
 
 	# Exporting as JSON files.
 	print('\nExporting as JSON')
-	df[df['type'] == 'Generic'].to_json(path_or_buf = cleaned_messages_json, orient='records')
-	df[(df['type'] == 'AddParticipant') | (df['type'] == 'Leaver')].to_json(path_or_buf = cleaned_participants_json, orient='records')
-	df[df['type'] == 'GroupRename'].to_json(path_or_buf = cleaned_conversation_name_json, orient='records')
-	df[df['type'] == 'ChangedColour'].to_json(path_or_buf = cleaned_conversation_colour_json, orient='records')
-	df[df['type'] == 'ChangedEmoji'].to_json(path_or_buf = cleaned_conversation_emoji_json, orient='records')
+	#df[df['type'] == 'Generic'].to_json(path_or_buf = cleaned_messages_json, orient='records')
+	#df[(df['type'] == 'AddParticipant') | (df['type'] == 'Leaver')].to_json(path_or_buf = cleaned_participants_json, orient='records')
+	#df[df['type'] == 'GroupRename'].to_json(path_or_buf = cleaned_conversation_name_json, orient='records')
+	#df[df['type'] == 'ChangedColour'].to_json(path_or_buf = cleaned_conversation_colour_json, orient='records')
+	#df[df['type'] == 'ChangedEmoji'].to_json(path_or_buf = cleaned_conversation_emoji_json, orient='records')
 	
-	df_hidden = df
-	del df_hidden['content']
-	df_hidden[df_hidden['type'] == 'Generic'].to_json(path_or_buf = cleaned_messages_hidden_json, orient='records')
+	#df_hidden = df
+	#del df_hidden['content']
+	#df_hidden[df_hidden['type'] == 'Generic'].to_json(path_or_buf = cleaned_messages_hidden_json, orient='records')
 
-	with open(stacked_messages_JSON, 'w') as outfile:
-	    json.dump(new_stacked_data_message, outfile)
+	#with open(stacked_messages_JSON, 'w') as outfile:
+	#    json.dump(new_stacked_data_message, outfile)
 	    
-	with open(stacked_chars_JSON, 'w') as outfile:
-	    json.dump(new_stacked_data_char, outfile)
+	#with open(stacked_chars_JSON, 'w') as outfile:
+	#    json.dump(new_stacked_data_char, outfile)
 
 	with open(stacked_JSON, 'w') as outfile:
 	    json.dump(new_stacked_data, outfile)
