@@ -953,16 +953,26 @@ function get_date_from_user(d, i, nodes) {
       '\nThe week closest to your input will be taken as the new end date.');
   }
 
-  console.log('received : ' + date);
+  console.log('received for ' + dates_display_data[0].id + ': ' + date);
 
   if (is_valid_date(date)) {
-    console.log('valid date : ' + Date.parse(date) / 1000);
+    console.log('valid date : ' + parse_date(date) / 1000);
     if (id === dates_display_data[0].id) {
-      min_timestamp = find_closest_ts(Date.parse(date) / 1000);
+      var tentative_min_timestamp = find_closest_ts(parse_date(date) / 1000);
+      if (tentative_min_timestamp > max_timestamp) { 
+        console.log('Tentative min timestamp above max timestamp, returning.'); 
+        return; 
+      }
+      min_timestamp = tentative_min_timestamp;
       console.log('Found closest for min : ' + min_timestamp);
       console.log(new Date(min_timestamp * 1000));
     } else {
-      max_timestamp = find_closest_ts(Date.parse(date) / 1000);
+      var tentative_max_timestamp = find_closest_ts(parse_date(date) / 1000);
+      if (tentative_max_timestamp < min_timestamp) { 
+        console.log('Tentative max timestamp below min timestamp, returning.'); 
+        return; 
+      }
+      max_timestamp = tentative_max_timestamp;
       console.log('Found closest for max : ' + max_timestamp);
       console.log(new Date(max_timestamp * 1000));
     }
@@ -974,8 +984,8 @@ function get_date_from_user(d, i, nodes) {
 }
 
 function is_valid_date(date) {
-  var submitted_date = Date.parse(date);
-  if (isNaN(submitted_date)) return false;
+  var submitted_date = parse_date(date);
+  if (submitted_date === undefined || isNaN(submitted_date)) return false;
   console.log('passed parsing');
   if (submitted_date < new Date(permanent_min_timestamp * 1000)) return false;
   console.log('passed min');
@@ -993,4 +1003,15 @@ function find_closest_ts(ts){
     }
 
     return closest;
+}
+
+function parse_date(str) {
+  var dateParts = str.split("/");
+  if (dateParts[0].length == 2) {
+    return new Date(dateParts[2], (dateParts[1] - 1), dateParts[0]);
+  }
+  if (dateParts[0].length == 4) {
+    return new Date(dateParts[0], (dateParts[1] - 1), dateParts[2]);
+  }
+  return undefined;
 }
