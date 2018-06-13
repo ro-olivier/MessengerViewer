@@ -26,8 +26,8 @@ http://nikhil-nathwani.com/blog/posts/radio/radio.html
 
 var svg = d3.select('svg'),
     margin = {top: 20, right: 20, bottom: 300, left: 60},
-    margin2 = {top: 395, right: 20, bottom: 210, left: 60},
-    margin3 = {top: 595, right: 20, bottom: 0, left: 60},
+    margin2 = {top: 427, right: 20, bottom: 210, left: 60},
+    margin3 = {top: 627, right: 20, bottom: 0, left: 60},
     width = +svg.attr('width') - margin.left - margin.right,
     height = +svg.attr('height') - margin.top - margin.bottom,
     height2 = +svg.attr('height') - margin2.top - margin2.bottom,
@@ -203,7 +203,7 @@ var legend = svg.append('g')
 var legends; // Will hold individual legend item, initiated once the file has been read
 
 // The additional legend button to reactivate all participants at once
-var activateAll_vertical_offset = +legend_vertical_offset + (legendMaxItemOnColumn+1)*(legendRectSize + legendVerticalSpacing);
+var activateAll_vertical_offset = +legend_vertical_offset - 1.2*(legendRectSize + legendVerticalSpacing);
 var activateAll = svg.append('g')
   .attr('class', 'activateAll')
   .attr('transform', 'translate(' + margin3.left + ',' + activateAll_vertical_offset + ')');
@@ -710,8 +710,8 @@ function zoomed() {
 
   update_donut_and_chart();
 
-    console.log('zoomed new min_timestamp ' + min_timestamp);
-    console.log('zoomed new max_timestamp ' + max_timestamp);
+    //console.log('zoomed new min_timestamp ' + min_timestamp);
+    //console.log('zoomed new max_timestamp ' + max_timestamp);
 
   // Updating the date display
   update_date_display(min_timestamp, max_timestamp);
@@ -953,7 +953,7 @@ function compute_tween_arc(d) {
 }
 
 function update_date_display(start_ts, end_ts) {
-  console.log('Received order to update date displays with : ' + time_formatter(start_ts) + ' /// ' + time_formatter(end_ts));
+  //console.log('Received order to update date displays with : ' + time_formatter(start_ts) + ' /// ' + time_formatter(end_ts));
   d3.select('#date_start_display').text('Start of selection: ' + time_formatter(start_ts));
   d3.select('#date_end_display').text('End of selection: ' + time_formatter(end_ts));
 }
@@ -985,28 +985,28 @@ function get_date_from_user(d, i, nodes) {
       '\nThe week closest to your input will be taken as the new end date.');
   }
 
-  console.log('received for ' + dates_display_data[0].id + ': ' + date);
+  //console.log('received for ' + dates_display_data[0].id + ': ' + date);
 
   if (is_valid_date(date)) {
-    console.log('valid date : ' + parse_date(date) / 1000);
+    //console.log('valid date : ' + parse_date(date) / 1000);
     if (id === dates_display_data[0].id) {
       var tentative_min_timestamp = find_closest_ts(parse_date(date) / 1000);
       if (tentative_min_timestamp > max_timestamp) { 
-        console.log('Tentative min timestamp above max timestamp, returning.'); 
+        //console.log('Tentative min timestamp above max timestamp, returning.'); 
         return; 
       }
       min_timestamp = tentative_min_timestamp;
-      console.log('Found closest for min : ' + min_timestamp);
-      console.log(new Date(min_timestamp * 1000));
+      //console.log('Found closest for min : ' + min_timestamp);
+      //console.log(new Date(min_timestamp * 1000));
     } else {
       var tentative_max_timestamp = find_closest_ts(parse_date(date) / 1000);
       if (tentative_max_timestamp < min_timestamp) { 
-        console.log('Tentative max timestamp below min timestamp, returning.'); 
+        //console.log('Tentative max timestamp below min timestamp, returning.'); 
         return; 
       }
       max_timestamp = tentative_max_timestamp;
-      console.log('Found closest for max : ' + max_timestamp);
-      console.log(new Date(max_timestamp * 1000));
+      //console.log('Found closest for max : ' + max_timestamp);
+      //console.log(new Date(max_timestamp * 1000));
     }
   }
 
@@ -1018,11 +1018,11 @@ function get_date_from_user(d, i, nodes) {
 function is_valid_date(date) {
   var submitted_date = parse_date(date);
   if (submitted_date === undefined || isNaN(submitted_date)) return false;
-  console.log('passed parsing');
+  //console.log('passed parsing');
   if (submitted_date < new Date(permanent_min_timestamp * 1000)) return false;
-  console.log('passed min');
+  //console.log('passed min');
   if (submitted_date > new Date(permanent_max_timestamp * 1000)) return false;
-  console.log('passed max');
+  //console.log('passed max');
   return true;
 }
 
