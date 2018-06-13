@@ -1,5 +1,5 @@
-<body>
-      <style>
+
+  <style>
 
     .area {
       fill: steelblue;
@@ -25,10 +25,11 @@
       fill: transparent !important;                                 
     }
 
-  </style>
-  <script type="text/javascript" src="d3.v4.min.js"></script>
-  <center>
-    <svg width="1080" height="668"></svg>
-  </center>
-  <script type="text/javascript" src="MessengerViewer.js"></script>
-</body>
+</style>
+<script type="text/javascript" src="d3.v4.min.js"></script>
+<center>
+  <svg width="1080" height="668"></svg>
+</center>
+<script type="text/javascript" src="MessengerViewer.js"></script>
+
+<br><br><p>Comments, correction and bug reports welcome ;-)</p>
