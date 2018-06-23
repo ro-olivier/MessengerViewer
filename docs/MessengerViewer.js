@@ -525,72 +525,7 @@ function do_brushed(v0, v1, range) {
       .scale(width / (v1 - v0))
       .translate(-v0, 0));
 
-  // Depending on the current data type, we compute the new data to display in the donut chat
-  if (data_type === 'messages') {
-    var cumul_data_messages = {};
-
-    stacked_data.forEach(function(d, i){
-      d.total_message = 0;
-
-      // Additional condition (compared to similar code in init) to keep data only from selected range
-      if ((d.timestamp * 1000) >= range[0].getTime() && 
-        (d.timestamp * 1000) <= range[1].getTime()) {
-
-      if (Object.keys(cumul_data_messages).length == 0) {
-            keys.forEach(function(k){
-              d.total_message += d[k].messages;
-              cumul_data_messages[k] = d[k].messages;
-            });
-          } else {
-          //d.timestamp = d['timestamp'];
-            keys.forEach(function(k){
-              d.total_message += d[k].messages;
-              cumul_data_messages[k] += d[k].messages;
-            });
-        } 
-      }
-    });
-
-    min_timestamp = d3.min(stacked_data.map(function(d) { if (d.total_message > 0) return d.timestamp; }));
-    max_timestamp = d3.max(stacked_data.map(function(d) { if (d.total_message > 0) return d.timestamp; }));
-
-    var cumul_data_pie_messages_ = transform(cumul_data_messages, keys);
-    cumul_data_pie_messages = apply_enabled_participant(cumul_data_pie_messages_);
-
-    path = donut.selectAll('path').data(pie(cumul_data_pie_messages));
-  } else {
-    var cumul_data_chars = {};
-
-    stacked_data.forEach(function(d, i){
-      d.total_char = 0;
-
-      // Additional condition (compared to similar code in init) to keep data only from selected range
-      if ((d.timestamp * 1000) >= range[0].getTime() && 
-        (d.timestamp * 1000) <= range[1].getTime()) {
-
-      if (Object.keys(cumul_data_chars).length == 0) {
-            keys.forEach(function(k){
-              d.total_char += d[k].chars;
-              cumul_data_chars[k] = d[k].chars;
-            });
-          } else {
-          //d.timestamp = d['timestamp'];
-            keys.forEach(function(k){
-              d.total_char += d[k].chars;
-              cumul_data_chars[k] += d[k].chars;
-            });
-        } 
-      }
-    });
-
-    min_timestamp = d3.min(stacked_data.map(function(d) { if (d.total_char > 0) return d.timestamp; }));
-    max_timestamp = d3.max(stacked_data.map(function(d) { if (d.total_char > 0) return d.timestamp; }));
-
-    var cumul_data_pie_chars_ = transform(cumul_data_chars, keys);
-    cumul_data_pie_chars = apply_enabled_participant(cumul_data_pie_chars_);
-
-    path = donut.selectAll('path').data(pie(cumul_data_pie_chars));
-  } 
+  recompute_donut(range, true);
 
   // Updating the date display
   update_date_display(min_timestamp, max_timestamp);
@@ -614,67 +549,7 @@ function zoomed() {
     x.domain(t.rescaleX(x2).domain());
   }
 
-  // Depending on the current data type, we compute the new data to display in the donut chat
-  if (data_type === 'messages') {
-    var cumul_data_messages = {};
-
-    stacked_data.forEach(function(d, i){
-      d.total_message = 0;
-
-      // Additional condition (compared to similar code in init) to keep data only from selected range
-      if ((d.timestamp * 1000) >= x.domain()[0].getTime() && 
-          (d.timestamp * 1000) <= x.domain()[1].getTime()) {
-
-      if (Object.keys(cumul_data_messages).length == 0) {
-            keys.forEach(function(k){
-              d.total_message += d[k].messages;
-              cumul_data_messages[k] = d[k].messages;
-            });
-          } else {
-          //d.timestamp = d['timestamp'];
-            keys.forEach(function(k){
-              d.total_message += d[k].messages;
-              cumul_data_messages[k] += d[k].messages;
-            });
-        } 
-      }
-    });
-
-    var cumul_data_pie_messages_ = transform(cumul_data_messages, keys);
-    cumul_data_pie_messages = apply_enabled_participant(cumul_data_pie_messages_);
-
-    path = donut.selectAll('path').data(pie(cumul_data_pie_messages));
-  } else {
-    var cumul_data_chars = {};
-
-    stacked_data.forEach(function(d, i){
-      d.total_char = 0;
-      d.timestamp = d.timestamp;
-
-      // Additional condition (compared to similar code in init) to keep data only from selected range
-      if ((d.timestamp * 1000) >= x.domain()[0].getTime() && 
-          (d.timestamp * 1000) <= x.domain()[1].getTime()) {
-
-      if (Object.keys(cumul_data_chars).length == 0) {
-            keys.forEach(function(k){
-              d.total_char += d[k].chars;
-              cumul_data_chars[k] = d[k].chars;
-            });
-          } else {
-          //d.timestamp = d['timestamp'];
-            keys.forEach(function(k){
-              d.total_char += d[k].chars;
-              cumul_data_chars[k] += d[k].chars;
-            });
-        } 
-      }
-    });
-
-    var cumul_data_pie_chars_ = transform(cumul_data_chars, keys);
-    cumul_data_pie_chars = apply_enabled_participant(cumul_data_pie_chars_);
-
-    path = donut.selectAll('path').data(pie(cumul_data_pie_chars));
-  }
+  recompute_donut(x.domain(), false);
 
   // We are recomputing the data to display in the main chart area depending on the data type
   if (data_type === 'messages') {
@@ -872,6 +747,8 @@ function toggle_data_type() {
     .duration(750)
     .call(d3.axisLeft(y));
 
+  recompute_donut(x.domain(), false);
+
   update_donut_and_chart();
 
   // Updating the context chart (slight different, but noticeable)
@@ -1039,7 +916,7 @@ function find_closest_ts(ts){
 
 function parse_date(str) {
   var dateParts = str.split("/");
-  if (dateParts[0].length == 2) {
+  if (dateParts[0].length == 1 || dateParts[0].length == 2) {
     return new Date(dateParts[2], (dateParts[1] - 1), dateParts[0]);
   }
   if (dateParts[0].length == 4) {
@@ -1051,4 +928,78 @@ function parse_date(str) {
 function reset_date() {
   update_date_display(permanent_min_timestamp, permanent_max_timestamp);
   do_brushed(x(permanent_min_timestamp), x(permanent_max_timestamp), [new Date(permanent_min_timestamp * 1000), new Date(permanent_max_timestamp * 1000)]);
+}
+
+function recompute_donut(r, reset_min_max) {
+    // Depending on the current data type, we compute the new data to display in the donut chat
+  if (data_type === 'messages') {
+    var cumul_data_messages = {};
+
+    stacked_data.forEach(function(d, i){
+      d.total_message = 0;
+
+      // Additional condition (compared to similar code in init) to keep data only from selected range
+      if ((d.timestamp * 1000) >= r[0].getTime() && 
+          (d.timestamp * 1000) <= r[1].getTime()) {
+
+      if (Object.keys(cumul_data_messages).length == 0) {
+            keys.forEach(function(k){
+              d.total_message += d[k].messages;
+              cumul_data_messages[k] = d[k].messages;
+            });
+          } else {
+          //d.timestamp = d['timestamp'];
+            keys.forEach(function(k){
+              d.total_message += d[k].messages;
+              cumul_data_messages[k] += d[k].messages;
+            });
+        } 
+      }
+    });
+
+    if (reset_min_max) {
+      min_timestamp = d3.min(stacked_data.map(function(d) { if (d.total_message > 0) return d.timestamp; }));
+      max_timestamp = d3.max(stacked_data.map(function(d) { if (d.total_message > 0) return d.timestamp; }));
+    }
+
+    var cumul_data_pie_messages_ = transform(cumul_data_messages, keys);
+    cumul_data_pie_messages = apply_enabled_participant(cumul_data_pie_messages_);
+
+    path = donut.selectAll('path').data(pie(cumul_data_pie_messages));
+  } else {
+    var cumul_data_chars = {};
+
+    stacked_data.forEach(function(d, i){
+      d.total_char = 0;
+      d.timestamp = d.timestamp;
+
+      // Additional condition (compared to similar code in init) to keep data only from selected range
+      if ((d.timestamp * 1000) >= r[0].getTime() && 
+          (d.timestamp * 1000) <= r[1].getTime()) {
+
+      if (Object.keys(cumul_data_chars).length == 0) {
+            keys.forEach(function(k){
+              d.total_char += d[k].chars;
+              cumul_data_chars[k] = d[k].chars;
+            });
+          } else {
+          //d.timestamp = d['timestamp'];
+            keys.forEach(function(k){
+              d.total_char += d[k].chars;
+              cumul_data_chars[k] += d[k].chars;
+            });
+        } 
+      }
+    });
+
+    if (reset_min_max) {
+      min_timestamp = d3.min(stacked_data.map(function(d) { if (d.total_char > 0) return d.timestamp; }));
+      max_timestamp = d3.max(stacked_data.map(function(d) { if (d.total_char > 0) return d.timestamp; }));
+    }
+
+    var cumul_data_pie_chars_ = transform(cumul_data_chars, keys);
+    cumul_data_pie_chars = apply_enabled_participant(cumul_data_pie_chars_);
+
+    path = donut.selectAll('path').data(pie(cumul_data_pie_chars));
+  }
 }
